@@ -1,7 +1,6 @@
-database
-dist
-node_modules
-prod-database
+database/
+dist/
+node_modules/
 yarn.lock
 .env
 package-lock.json

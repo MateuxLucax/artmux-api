@@ -5,16 +5,18 @@
   "license": "MIT",
   "repository": "https://github.com/MateuxLucax/artmux-api",
   "private": false,
-  "main": "./src/index.ts",
+  "main": "./src/server.ts",
   "scripts": {
-    "dev": "nodemon --watch 'src/' --exec 'ts-node src/index.ts' -e ts",
+    "dev": "nodemon --watch 'src/' --exec 'ts-node src/server.ts' -e ts",
     "build": "tsc",
-    "start": "node ./dist/index.js"
+    "start": "node ./dist/server.js",
+    "knex:migrate:make": "knex --knexfile src/database/knexfile.ts migrate:make",
+    "knex:migrate:latest": "knex --knexfile src/database/knexfile.ts migrate:latest",
+    "knex:migrate:rollback": "knex --knexfile src/database/knexfile.ts migrate:rollback",
+    "knex:seed:make": "knex --knexfile src/database/knexfile.ts seed:make",
+    "knex:seed:run": "knex --knexfile src/database/knexfile.ts seed:run"
   },
   "dependencies": {
-    "@types/cors": "^2.8.12",
-    "@types/express": "^4.17.13",
-    "@types/node": "^17.0.31",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "express": "^4.18.1",
@@ -24,6 +26,9 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.16",
-    "ts-node": "^10.7.0"
+    "ts-node": "^10.7.0",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/node": "^17.0.31"
   }
 }
