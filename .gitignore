@@ -4,3 +4,4 @@ node_modules
 prod-database
 yarn.lock
 .env
+package-lock.json
