@@ -1,0 +1,39 @@
+version: "3.1"
+
+services:
+  api:
+    container_name: artmux-api
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - database
+    volumes:
+    - .:/usr/src/app
+
+  database:
+    container_name: artmux-database
+    image: postgres:14-alpine
+    restart: unless-stopped
+    tty: true
+    environment:
+      # host.docker.internal can be used as host on WSL
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      TZ: 'GMT-3'
+      PGTZ: 'GMT-3'
+    volumes:
+      - ./database/dev:/var/lib/postgresql/data
+      # - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${DB_PORT}:5432"
+    networks:
+      - artmux-network
+
+networks:
+  artmux-network:
+    driver: bridge

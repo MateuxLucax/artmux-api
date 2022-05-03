@@ -1,0 +1,29 @@
+{
+  "name": "artmux-api",
+  "version": "1.0.0",
+  "author": "Lucas Moraes Schwambach, Mateus Lucas Cruz Brandt",
+  "license": "MIT",
+  "repository": "https://github.com/MateuxLucax/artmux-api",
+  "private": false,
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "nodemon --watch 'src/' --exec 'ts-node src/index.ts' -e ts",
+    "build": "tsc",
+    "start": "node ./dist/index.js"
+  },
+  "dependencies": {
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/node": "^17.0.31",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.18.1",
+    "knex": "^2.0.0",
+    "pg": "^8.7.3",
+    "typescript": "^4.6.4"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.16",
+    "ts-node": "^10.7.0"
+  }
+}
