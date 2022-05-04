@@ -8,4 +8,6 @@ COPY ./src ./src
 
 RUN npm install
 
+CMD knex --knexfile dist/database/knexfile.js migrate:latest
+
 CMD npm run build && npm run start

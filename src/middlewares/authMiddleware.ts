@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express"
 import { decode, verify } from "jsonwebtoken"
 import { JWT_SECRET } from "../utils/environmentUtil"
 
-export const AuthMiddleware = () => {
+export const authMiddleware = () => {
   return async (request: Request, response: Response, next: NextFunction) => {
     const authHeaders = request.headers.authorization
 
@@ -10,15 +10,17 @@ export const AuthMiddleware = () => {
       return response.status(401).json({ error: "Token is missing" })
     }
 
-    const [, token] = authHeaders.split(" ")
+    const [bearer, token] = authHeaders.split(" ")
+
+    if (bearer != "Bearer") {
+      return response.status(401).json({ error: "Malformed token" })
+    }
 
     try {
       verify(token, JWT_SECRET)
 
-      const { sub: user_id  } = decode(token)
-
       request.user = {
-        id: user_id.toString(),
+        id: Number(decode(token)?.sub?.toString()),
       }
 
       next()

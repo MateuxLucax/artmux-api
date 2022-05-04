@@ -1,12 +1,12 @@
-import express from "express"
+import { Router } from "express"
 import { VERSION } from "../utils/environmentUtil"
-import user from "./users"
 import auth from "./auth"
+import users from "./users"
 
-const router = express.Router()
+const router = Router()
 
-router.use("/users", user)
 router.use("/auth", auth)
+router.use("/users", users)
 
 router.get("/", (req, res) => {
   res.json({
@@ -16,7 +16,7 @@ router.get("/", (req, res) => {
 })
 
 router.use((req, res) => {
-  res.status(404)
+  res.status(404).json({ error: "Not found" })
 })
 
 export default router

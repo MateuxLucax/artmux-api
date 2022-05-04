@@ -1,10 +1,13 @@
 import express from "express"
-import AuthController from "../controller/AuthController"
+import UserController from "../controller/UserController"
+import { authMiddleware } from "../middlewares/authMiddleware"
 
-const controller = new AuthController()
+const controller = new UserController()
 
 const router = express.Router()
 
-router.post("/", controller.signup)
+router.use(authMiddleware())
+
+router.get("/me", controller.me)
 
 export default router
