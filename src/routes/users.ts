@@ -1,10 +1,10 @@
-import express from 'express'
+import express from "express"
 import AuthController from "../controller/AuthController"
-
-const router = express.Router()
 
 const controller = new AuthController()
 
-router.post("/signup", controller.signup)
+const router = express.Router()
+
+router.post("/", controller.signup)
 
 export default router
