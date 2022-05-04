@@ -5,7 +5,7 @@ interface KnexConfig {
 };
 
 const knexConfig: KnexConfig = {
-  development: {
+  dev: {
     client: DB_CLIENT,
     connection: {
       database: DB_NAME,
