@@ -20,12 +20,12 @@ export const authMiddleware = () => {
       verify(token, JWT_SECRET)
 
       request.user = {
-        id: Number(decode(token)?.sub?.toString()),
+        id: Number(decode(token)?.sub?.toString())
       }
 
       next()
     } catch (err) {
-      return response.status(401).end()
+      return response.status(401).json({ error: "Unauthorized" })
     }
   }
 }
