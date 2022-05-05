@@ -2,7 +2,7 @@ import dotenv from "dotenv"
 
 dotenv.config()
 
-export const ENV = process.env.ENV || "dev"
+export const ENV = process.env.ENV || "development"
 export const HOSTNAME = process.env.HOSTNAME ||"http://localhost"
 export const PORT = process.env.PORT || 4000
 export const VERSION = process.env.VERSION || "1.0.0"
