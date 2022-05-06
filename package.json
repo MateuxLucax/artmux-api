@@ -7,7 +7,7 @@
   "private": false,
   "main": "./src/server.ts",
   "scripts": {
-    "dev": "nodemon --watch 'src/' --exec 'ts-node src/server.ts' -e ts",
+    "dev": "nodemon -L --watch 'src/' --exec 'ts-node src/server.ts' -e ts",
     "build": "tsc",
     "start": "node ./dist/server.js",
     "knex:migrate:make": "knex --knexfile src/database/knexfile.ts migrate:make",
