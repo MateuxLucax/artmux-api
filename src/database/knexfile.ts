@@ -8,6 +8,7 @@ const knexConfig: KnexConfig = {
   development: {
     client: DB_CLIENT,
     connection: {
+      host: 'host.docker.internal',
       database: DB_NAME,
       user: DB_USER,
       password: DB_PASSWORD,
