@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { UserModel } from "../model/UserModel"
 import { sign } from "jsonwebtoken"
 import { JWT_SECRET } from "../utils/environmentUtil"
-import { compare } from "bcrypt"
+import { compare } from "bcryptjs"
 
 export default class AuthController {
 

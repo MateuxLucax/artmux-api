@@ -1,18 +1,18 @@
 version: "3.1"
 
 services:
-  # api:
-  #   container_name: artmux-api
-  #   restart: unless-stopped
-  #   build:
-  #     context: .
-  #     dockerfile: ./docker/Dockerfile
-  #   ports:
-  #     - ${PORT}:${PORT}
-  #   depends_on:
-  #     - database
-  #   volumes:
-  #   - .:/usr/src/app
+  api:
+    container_name: artmux-api
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - database
+    volumes:
+    - .:/usr/src/app
 
   database:
     container_name: artmux-database
