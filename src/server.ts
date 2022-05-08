@@ -1,7 +1,7 @@
 import express from "express"
 import cors from "cors"
 import morgan from "morgan"
-import { PORT, HOSTNAME } from "./utils/environmentUtil"
+import { PORT, HOSTNAME, CORS_ORIGIN } from "./utils/environmentUtil"
 import routes from "./routes"
 
 const app = express()
@@ -19,7 +19,7 @@ app.use((req, res, next) => {
 app.use(routes)
 
 app.use(cors({
-    origin: ["http://localhost:3000"]
+    origin: CORS_ORIGIN
 }))
 
 app.listen(PORT, () => {
