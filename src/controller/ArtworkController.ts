@@ -5,11 +5,11 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import knex from '../database'
 
-export default class WorkController {
+export default class ArtworkController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
     formidable({
-      uploadDir: path.resolve('./workimg/')
+      uploadDir: path.resolve('./artworkimg/')
     })
     .parse(req, async (err, fields, files) => {
       const trx = await knex.transaction()
@@ -29,14 +29,14 @@ export default class WorkController {
         const observations = fields.observations;
         const imageFile = [files['image']].flat()[0]
 
-        const workUUID = crypto.randomUUID()
+        const artworkUUID = crypto.randomUUID()
 
         const extExecResult = /.*\.(.*)/.exec(imageFile.originalFilename ?? '') ?? []
         if (extExecResult.length < 2) {
           throw { statusCode: 400, message: 'Provided file has no extension' }
         }
         const ext = extExecResult[1];
-        const basePath = path.resolve(`./workimg/${workUUID}`)
+        const basePath = path.resolve(`./artworkimg/${artworkUUID}`)
         const imgPathOriginal  = `${basePath}_original.${ext}`
         const imgPathMedium    = `${basePath}_medium.${ext}`
         const imgPathThumbnail = `${basePath}_thumbnail.${ext}`
@@ -46,8 +46,8 @@ export default class WorkController {
         // TODO resize, save to _thumbnail
         // could install imagemagick in the dockerfile and spawn a child process for both
 
-        await trx('works').insert({
-          uuid: workUUID,
+        await trx('artworks').insert({
+          uuid: artworkUUID,
           user_id: userId,
           title: title,
           observations: observations,
@@ -57,7 +57,7 @@ export default class WorkController {
         })
 
         trx.commit()
-        res.status(201).json({ uuid: workUUID })
+        res.status(201).json({ uuid: artworkUUID })
       } catch(err) {
         trx.rollback()
         next(err)

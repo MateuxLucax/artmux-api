@@ -1,6 +1,6 @@
 database/
-workimg/*
-!workimg/.gitkeep
+artworkimg/*
+!artworkimg/.gitkeep
 dist/
 node_modules/
 yarn.lock

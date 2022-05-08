@@ -1,15 +1,14 @@
 import { ErrorRequestHandler, Router } from "express"
-import { appendFile } from "fs"
 import { VERSION } from "../utils/environmentUtil"
 import auth from "./auth"
 import users from "./users"
-import works from "./works"
+import artworks from "./artworks"
 
 const router = Router()
 
 router.use("/auth", auth)
 router.use("/users", users)
-router.use("/works", works)
+router.use("/artworks", artworks)
 
 router.get("/", (req, res) => {
   res.json({
