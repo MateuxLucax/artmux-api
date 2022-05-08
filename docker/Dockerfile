@@ -6,4 +6,4 @@ COPY ["package.json", "tsconfig.json", ".env", "./"]
 
 RUN npm install
 
-CMD npm run build && npm run dev
+CMD npm run dev
