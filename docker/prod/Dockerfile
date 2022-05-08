@@ -6,6 +6,8 @@ COPY ["package.json", "tsconfig.json", ".env", "./"]
 
 COPY ./src ./src
 
+RUN apk --update add imagemagick
+
 RUN npm install
 
 RUN knex --knexfile dist/database/knexfile.js migrate:latest
