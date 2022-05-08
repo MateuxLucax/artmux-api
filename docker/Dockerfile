@@ -4,6 +4,8 @@ WORKDIR /usr/src/app
 
 COPY ["package.json", "tsconfig.json", ".env", "./"]
 
+RUN apk --update add imagemagick
+
 RUN npm install
 
 CMD npm run dev
