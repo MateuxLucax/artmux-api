@@ -8,6 +8,14 @@ const app = express()
 
 app.use(morgan('dev'))
 app.use(express.json())
+
+
+// For testing; before routes!
+app.use((req, res, next) => {
+    req.user = { id: 1 }
+    next()
+})
+
 app.use(routes)
 
 app.use(cors({

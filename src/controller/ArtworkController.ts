@@ -41,8 +41,7 @@ export default class ArtworkController {
           throw { statusCode: 400, errorMessage: `Missing ${missing.join(', ')}` }
         }
         
-        // TODO change userId to req.user.id when it works
-        const userId = 1;
+        const userId = req.user.id;
         const title = fields.title as string;
         const observations = fields.observations as string;
         const imageFile = images[0]
@@ -95,9 +94,7 @@ export default class ArtworkController {
   }
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
-    console.log('getBySlug called')
-    // TODO use req.user.id when that works
-    const userId = 1
+    const userId = req.user.id
     const { slug, slugnum } = parseNumberedSlug(req.params.slug)
 
     const result = await
@@ -148,8 +145,7 @@ export default class ArtworkController {
       })
       return
     }
-    // TODO change to req.user.id when it works
-    const userId = 1
+    const userId = req.user.id
     const { slug, slugnum } = parseNumberedSlug(req.params.slug)
     const col = `img_path_${size}`
 
