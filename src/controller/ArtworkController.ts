@@ -21,6 +21,10 @@ async function nextSlugnum(knex: Knex, userId: number, slug: string) {
   )?.num
   return 1 + (currnum ? Number(currnum) : 0)
 }
+
+function artworkImageEndpoint(slug: string, slugnum: number, size: string)  {
+  return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
+}
 export default class ArtworkController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
@@ -85,12 +89,53 @@ export default class ArtworkController {
         })
 
         trx.commit()
-        res.status(201).json({ uuid: artworkUUID })
+        res.status(201).json({ uuid: artworkUUID, slug: fullSlug })
       } catch(err) {
         trx.rollback()
         next(err)
       }
     })
+  }
+
+  static async get(req: Request, res: Response) {
+
+    console.log('get artworks')
+
+    // TODO filters!
+    // TODO different orders?
+
+    const results = await
+      knex('artworks')
+      .select(
+        'uuid',
+        'slug',
+        'slug_num',
+        'user_id',
+        'title',
+        'observations',
+        'created_at',
+        'updated_at',
+        'img_path_original',
+        'img_path_medium',
+        'img_path_thumbnail')
+      .where('user_id', req.user.id)
+      .orderBy('created_at')
+
+    const works = results.map(work => { return {
+      uuid: work.uuid,
+      slug: makeNumberedSlug(work.slug, work.slug_num),
+      title: work.title,
+      observations: work.observations,
+      createdAt: work.created_at,
+      updatedAt: work.updated_at,
+      imagePaths: {
+        original: artworkImageEndpoint(work.slug, work.slug_num, 'original'),
+        medium: artworkImageEndpoint(work.slug, work.slug_num, 'medium'),
+        thumbnail: artworkImageEndpoint(work.slug, work.slug_num, 'thumbnail')
+      }
+    }})
+
+    res.status(200).json(works)
   }
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
@@ -129,9 +174,9 @@ export default class ArtworkController {
       createdAt: result.created_at,
       updatedAt: result.updated_at,
       imagePaths: {
-        original: `/artworks/${req.params.slug}/images/original`,
-        medium: `/artworks/${req.params.slug}/images/medium`,
-        thumbnail: `/artworks/${req.params.slug}/images/thumbnail`,
+        original: artworkImageEndpoint(slug, slugnum, 'original'),
+        medium: artworkImageEndpoint(slug, slugnum, 'medium'),
+        thumbnail: artworkImageEndpoint(slug, slugnum, 'thumbnail')
       }
     })
   }
