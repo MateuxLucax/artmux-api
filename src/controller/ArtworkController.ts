@@ -175,6 +175,7 @@ export default class ArtworkController {
           .update(updateObject);
 
         trx.commit()
+        res.status(200).json({ slug: slugfull })
       } catch (err) {
         trx.rollback()
         imgtrx.rollback()
