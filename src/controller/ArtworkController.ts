@@ -9,9 +9,9 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 
 import { makeNumberedSlug, makeSlug, parseNumberedSlug } from '../utils/slug'
-import { ARTWORK_IMG_DIRECTORY, MAX_SIDE_PX, makeArtworkImgPaths, makeArtworkImgPath } from '../utils/artworkImg'
+import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction } from '../utils/artworkImg'
 
-async function nextSlugnum(knex: Knex, userId: number, slug: string) {
+async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
   const currnum = (await
     knex('artworks')
     .select(knex.raw('MAX(slug_num) AS num'))
@@ -33,14 +33,22 @@ export default class ArtworkController {
     })
     .parse(req, async (err, fields, files) => {
       const trx = await knex.transaction()
+      const imgtrx = new ArtworkImageTransaction()
+
       try {
         if (err) throw err;
 
         const missing = [];
         if (!fields.hasOwnProperty('title')) missing.push('title')
         if (!files.hasOwnProperty('image')) missing.push('image')
-        const images = [files['image']].flat()
-        if (images.length == 0) missing.push('image')
+        const images = [files['image']].flat() // files['image'] is a File | File[]
+
+        if (images.length == 0){
+          missing.push('image')
+        } else {
+          imgtrx.setUploadedFile(images[0].filepath)
+        }
+
         if (missing.length > 0) {
           throw { statusCode: 400, errorMessage: `Missing ${missing.join(', ')}` }
         }
@@ -48,32 +56,18 @@ export default class ArtworkController {
         const userId = req.user.id;
         const title = fields.title as string;
         const observations = fields.observations as string;
-        const imageFile = images[0]
 
         const slug = makeSlug(title)
-        const slugnum = await nextSlugnum(trx, userId, slug)
-        const fullSlug = makeNumberedSlug(slug, slugnum)
+        const slugnum = await nextArtworkSlugnum(trx, userId, slug)
+        const slugfull = makeNumberedSlug(slug, slugnum)
 
-        const [, ext] = /.*\.(.*)/.exec(imageFile.originalFilename ?? '') ?? []
+        const [, ext] = /.*\.(.*)/.exec(images[0].originalFilename ?? '') ?? []
         if (!ext) {
           throw { statusCode: 400, errorMessage: 'Provided file has no extension' }
         }
 
-        // TODO delete the created images if something fails at/after this stage
-
-        const imgPaths = makeArtworkImgPaths(userId, fullSlug, ext)
-        await fs.rename(imageFile.filepath, imgPaths.original)
-
-        const asyncExec = promisify(exec)
-        const makeMedium =
-          `magick '${imgPaths.original}' -resize '${MAX_SIDE_PX.medium}x${MAX_SIDE_PX.medium}>' '${imgPaths.medium}'`
-        const makeThumbnail =
-          `magick '${imgPaths.original}' -resize '${MAX_SIDE_PX.thumbnail}x${MAX_SIDE_PX.thumbnail}>' '${imgPaths.thumbnail}'`
-        const resizeOriginal =
-          `magick '${imgPaths.original}' -resize '${MAX_SIDE_PX.original}x${MAX_SIDE_PX.original}>' '${imgPaths.original}'`
-
-        await asyncExec(resizeOriginal)
-        await Promise.all([ asyncExec(makeMedium), asyncExec(makeThumbnail) ])
+        const imgPaths = makeArtworkImgPaths(userId, slugfull, ext)
+        await imgtrx.create(imgPaths)
 
         const artworkUUID = crypto.randomUUID()
         await trx('artworks').insert({
@@ -89,17 +83,107 @@ export default class ArtworkController {
         })
 
         trx.commit()
-        res.status(201).json({ uuid: artworkUUID, slug: fullSlug })
+        res.status(201).json({ uuid: artworkUUID, slug: slugfull })
       } catch(err) {
         trx.rollback()
+        await imgtrx.rollback()
+        next(err)
+      }
+    })
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction) {
+    const userid = req.user.id
+    const oldslugfull = req.params.slug
+    const { slug: oldslug, slugnum: oldslugnum } = parseNumberedSlug(oldslugfull)
+
+    formidable({ uploadDir: ARTWORK_IMG_DIRECTORY })
+    .parse(req, async (err, fields, files) => {
+
+      const trx = await knex.transaction()
+      const imgtrx = new ArtworkImageTransaction()
+
+      try {
+        if (err) throw err;
+
+        if (!fields.hasOwnProperty('title')) { // Only required field
+          throw { statusCode: 400, errorMessage: 'Missing title'}
+        }
+        const title = fields['title'] as string
+        const observations = fields['observations'] as string
+        const images = [files['image']].flat()
+
+        const oldwork = await
+          knex('artworks')
+          .where('user_id', userid)
+          .andWhere('slug', oldslug)
+          .andWhere('slug_num', oldslugnum)
+          .select('title', 'img_path_original', 'img_path_medium', 'img_path_thumbnail')
+          .first()
+
+        const slug = makeSlug(title)
+        const slugChanged = oldslug != slug;
+          
+        const slugnum = slugChanged ? await nextArtworkSlugnum(trx, userid, slug) : oldslugnum;
+        const slugfull = makeNumberedSlug(slug, slugnum)
+
+        const updateObject = {
+          slug: slug,
+          slug_num: slugnum,
+          title: title,
+          observations: observations,
+          updated_at: (new Date()).toISOString()
+        }
+
+        const oldPaths = {
+          original: oldwork.img_path_original,
+          medium: oldwork.img_path_medium,
+          thumbnail: oldwork.img_path_thumbnail,
+        }
+
+        if (images.length > 0 && images[0] != undefined) {
+          imgtrx.setUploadedFile(images[0].filepath)
+
+          const [, ext] = /.*\.(.*)/.exec(images[0].originalFilename ?? '') ?? []
+          if (!ext) throw { statusCode: 400, errorMessage: 'Extensionless file' }
+          await imgtrx.delete(oldPaths)
+
+          const paths = makeArtworkImgPaths(userid, slugfull, ext)
+          await imgtrx.create(paths)
+
+          Object.assign(updateObject, {
+            img_path_original: paths.original,
+            img_path_medium: paths.medium,
+            img_path_thumbnail: paths.thumbnail,
+          })
+        } else if (slugChanged) {
+          const [, ext] = /.*\.(.*)/.exec(oldPaths.original) ?? []
+          const paths = makeArtworkImgPaths(userid, slugfull, ext)
+          await imgtrx.rename(oldPaths, paths)
+
+          Object.assign(updateObject, {
+            img_path_original: paths.original,
+            img_path_medium: paths.medium,
+            img_path_thumbnail: paths.thumbnail,
+          })
+        }
+
+        await knex('artworks')
+          .where('user_id', userid)
+          .andWhere('slug', oldslug)
+          .andWhere('slug_num', oldslugnum)
+          .update(updateObject);
+
+        trx.commit()
+      } catch (err) {
+        trx.rollback()
+        imgtrx.rollback()
         next(err)
       }
     })
   }
 
   static async get(req: Request, res: Response) {
-
-    console.log('get artworks')
 
     // TODO filters!
     // TODO different orders?
@@ -197,7 +281,7 @@ export default class ArtworkController {
     // the only reason we get the path from the database instead of infering it from
     // the slug, user id, etc, is because of the extension
     // TODO use ls to get full path, with extension, then sendFIle
-    // (and if you do that, then also remove the img_path_... columns since they'll be useless)
+    // (and if you do that, then also remove the img_path_... columns from the artworks table since they'll be useless)
     const result = await
       knex('artworks')
       .select(knex.raw(`${col} AS img_path`))
@@ -216,7 +300,7 @@ export default class ArtworkController {
     try {
       res.sendFile(imgPath)
     } catch(err) {
-      next(err)
+      next({ statusCode: 404, errorMessage: 'Image does not exist' })
     }
   }
 
