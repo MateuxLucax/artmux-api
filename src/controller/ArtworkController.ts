@@ -4,12 +4,16 @@ import knex from '../database'
 import { Knex } from 'knex'
 
 import crypto from 'crypto'
-import { promises as fs } from 'fs'
-import { exec } from 'child_process'
-import { promisify } from 'util'
 
-import { makeNumberedSlug, makeSlug, parseNumberedSlug } from '../utils/slug'
-import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction } from '../utils/artworkImg'
+import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug'
+import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, getArtworkImgPaths } from '../utils/artworkImg'
+
+function knexArtwork(userid: number, slug: string, slugnum: number) {
+  return knex('artworks')
+    .where('user_id', userid)
+    .andWhere('slug', slug)
+    .andWhere('slug_num', slugnum)
+}
 
 async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
   const currnum = (await
@@ -22,7 +26,7 @@ async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
   return 1 + (currnum ? Number(currnum) : 0)
 }
 
-function artworkImageEndpoint(slug: string, slugnum: number, size: string)  {
+function artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
   return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
 }
 export default class ArtworkController {
@@ -114,10 +118,7 @@ export default class ArtworkController {
         const images = [files['image']].flat()
 
         const oldwork = await
-          knex('artworks')
-          .where('user_id', userid)
-          .andWhere('slug', oldslug)
-          .andWhere('slug_num', oldslugnum)
+          knexArtwork(userid, oldslug, oldslugnum)
           .select('title', 'img_path_original', 'img_path_medium', 'img_path_thumbnail')
           .first()
 
@@ -146,7 +147,7 @@ export default class ArtworkController {
 
           const [, ext] = /.*\.(.*)/.exec(images[0].originalFilename ?? '') ?? []
           if (!ext) throw { statusCode: 400, errorMessage: 'Extensionless file' }
-          await imgtrx.delete(oldPaths)
+          await imgtrx.delete(Object.values(oldPaths))
 
           const paths = makeArtworkImgPaths(userid, slugfull, ext)
           await imgtrx.create(paths)
@@ -168,11 +169,7 @@ export default class ArtworkController {
           })
         }
 
-        await knex('artworks')
-          .where('user_id', userid)
-          .andWhere('slug', oldslug)
-          .andWhere('slug_num', oldslugnum)
-          .update(updateObject);
+        await knexArtwork(userid, slug, slugnum).update(updateObject);
 
         trx.commit()
         res.status(200).json({ slug: slugfull })
@@ -182,6 +179,27 @@ export default class ArtworkController {
         next(err)
       }
     })
+  }
+
+  static async delete(req: Request, res: Response, next: NextFunction) {
+    const userid = req.user.id
+    const slugfull = req.params.slug
+    const { slug, slugnum } = parseNumberedSlug(slugfull)
+
+    const trx = await knex.transaction()
+    const imgtrx = new ArtworkImageTransaction()
+    try {
+      await Promise.all([
+        getArtworkImgPaths(userid, slugfull).then(paths => imgtrx.delete(Object.values(paths))),
+        knexArtwork(userid, slug, slugnum).delete()
+      ])
+      trx.commit()
+      res.status(204).end()
+    } catch(err) {
+      trx.rollback()
+      imgtrx.rollback()
+      next(err)
+    }
   }
 
   static async get(req: Request, res: Response) {
@@ -214,9 +232,9 @@ export default class ArtworkController {
       createdAt: work.created_at,
       updatedAt: work.updated_at,
       imagePaths: {
-        original: artworkImageEndpoint(work.slug, work.slug_num, 'original'),
-        medium: artworkImageEndpoint(work.slug, work.slug_num, 'medium'),
-        thumbnail: artworkImageEndpoint(work.slug, work.slug_num, 'thumbnail')
+        original: artworkImgEndpoint(work.slug, work.slug_num, 'original'),
+        medium: artworkImgEndpoint(work.slug, work.slug_num, 'medium'),
+        thumbnail: artworkImgEndpoint(work.slug, work.slug_num, 'thumbnail')
       }
     }})
 
@@ -259,9 +277,9 @@ export default class ArtworkController {
       createdAt: result.created_at,
       updatedAt: result.updated_at,
       imagePaths: {
-        original: artworkImageEndpoint(slug, slugnum, 'original'),
-        medium: artworkImageEndpoint(slug, slugnum, 'medium'),
-        thumbnail: artworkImageEndpoint(slug, slugnum, 'thumbnail')
+        original: artworkImgEndpoint(slug, slugnum, 'original'),
+        medium: artworkImgEndpoint(slug, slugnum, 'medium'),
+        thumbnail: artworkImgEndpoint(slug, slugnum, 'thumbnail')
       }
     })
   }
@@ -276,30 +294,11 @@ export default class ArtworkController {
       return
     }
     const userId = req.user.id
-    const { slug, slugnum } = parseNumberedSlug(req.params.slug)
-    const col = `img_path_${size}`
 
-    // the only reason we get the path from the database instead of infering it from
-    // the slug, user id, etc, is because of the extension
-    // TODO use ls to get full path, with extension, then sendFIle
-    // (and if you do that, then also remove the img_path_... columns from the artworks table since they'll be useless)
-    const result = await
-      knex('artworks')
-      .select(knex.raw(`${col} AS img_path`))
-      .where('user_id', userId)
-      .andWhere('slug', slug)
-      .andWhere('slug_num', slugnum)
-      .first()
-    if (!result) {
-      next({
-        statusCode: 404,
-        errorMessage: `No artwork matching user ID ${userId}, slug ${req.params.slug} was found`
-      })
-      return
-    }
-    const imgPath = result.img_path;
     try {
-      res.sendFile(imgPath)
+      const paths = await getArtworkImgPaths(userId, req.params.slug)
+      const path = paths[size];
+      res.sendFile(path)
     } catch(err) {
       next({ statusCode: 404, errorMessage: 'Image does not exist' })
     }

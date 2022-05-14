@@ -6,8 +6,9 @@ const router = express.Router()
 router.get('/', ArtworkController.get)
 router.get('/:slug/images/:size', ArtworkController.getImage)
 router.get('/:slug', ArtworkController.getBySlug)
-router.patch('/:slug', ArtworkController.update)
-
 router.post('/', ArtworkController.create)
+router.patch('/:slug', ArtworkController.update)
+router.delete('/:slug', ArtworkController.delete)
+
 
 export default router

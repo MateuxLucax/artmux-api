@@ -37,7 +37,16 @@ makeArtworkImgPaths(userId: number, slug: string, ext: string) {
   }
 }
 
+
 const asyncExec = promisify(exec)
+
+export async function
+getArtworkImgPaths(userid: number, slug: string) {
+  const { stdout } = await asyncExec(`ls '${ARTWORK_IMG_DIRECTORY}/${userid}_${slug}_original*'`)
+  const [, ext] = /.*\.(.*)/.exec(stdout) ?? []
+  if (!ext) throw 'File not found';
+  return makeArtworkImgPaths(userid, slug, ext);
+}
 
 export class ArtworkImageTransaction {
 
@@ -79,15 +88,11 @@ export class ArtworkImageTransaction {
     ])
   }
 
-  async delete(paths: {original: string, medium: string, thumbnail: string}) {
-    await Promise.all([
-      asyncExec(`mv '${paths.original}' '${ARTWORK_IMG_TRASH_DIRECTORY}'`)
-        .then(() => this.trashedPaths.push(paths.original)),
-      asyncExec(`mv '${paths.medium}' '${ARTWORK_IMG_TRASH_DIRECTORY}'`)
-        .then(() => this.trashedPaths.push(paths.medium)),
-      asyncExec(`mv '${paths.thumbnail}' '${ARTWORK_IMG_TRASH_DIRECTORY}'`)
-        .then(() => this.trashedPaths.push(paths.thumbnail)),
-    ])
+  async delete(paths: string[]) {
+    await Promise.all(paths.map(path =>
+      asyncExec(`mv '${path}' '${ARTWORK_IMG_TRASH_DIRECTORY}'`)
+      .then(() => this.trashedPaths.push(path))
+    ));
   }
 
   async rename(
