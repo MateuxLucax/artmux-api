@@ -42,7 +42,7 @@ const asyncExec = promisify(exec)
 
 export async function
 getArtworkImgPaths(userid: number, slug: string) {
-  const { stdout } = await asyncExec(`ls '${ARTWORK_IMG_DIRECTORY}/${userid}_${slug}_original*'`)
+  const { stdout } = await asyncExec(`ls ${ARTWORK_IMG_DIRECTORY}/${userid}_${slug}_original*`)
   const [, ext] = /.*\.(.*)/.exec(stdout) ?? []
   if (!ext) throw 'File not found';
   return makeArtworkImgPaths(userid, slug, ext);

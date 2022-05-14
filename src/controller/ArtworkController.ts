@@ -8,33 +8,11 @@ import crypto from 'crypto'
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug'
 import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, getArtworkImgPaths } from '../utils/artworkImg'
 
-function knexArtwork(userid: number, slug: string, slugnum: number) {
-  return knex('artworks')
-    .where('user_id', userid)
-    .andWhere('slug', slug)
-    .andWhere('slug_num', slugnum)
-}
 
-async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
-  const currnum = (await
-    knex('artworks')
-    .select(knex.raw('MAX(slug_num) AS num'))
-    .where('slug', slug)
-    .andWhere('user_id', userId)
-    .first()
-  )?.num
-  return 1 + (currnum ? Number(currnum) : 0)
-}
-
-function artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
-  return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
-}
 export default class ArtworkController {
 
   static async create(req: Request, res: Response, next: NextFunction) {
-    formidable({
-      uploadDir: ARTWORK_IMG_DIRECTORY
-    })
+    formidable({ uploadDir: ARTWORK_IMG_DIRECTORY })
     .parse(req, async (err, fields, files) => {
       const trx = await knex.transaction()
       const imgtrx = new ArtworkImageTransaction()
@@ -169,7 +147,7 @@ export default class ArtworkController {
           })
         }
 
-        await knexArtwork(userid, slug, slugnum).update(updateObject);
+        await knexArtwork(userid, oldslug, oldslugnum).update(updateObject);
 
         trx.commit()
         res.status(200).json({ slug: slugfull })
@@ -190,7 +168,10 @@ export default class ArtworkController {
     const imgtrx = new ArtworkImageTransaction()
     try {
       await Promise.all([
-        getArtworkImgPaths(userid, slugfull).then(paths => imgtrx.delete(Object.values(paths))),
+        getArtworkImgPaths(userid, slugfull)
+        .then(paths => imgtrx.delete(Object.values(paths)))
+        .catch(console.error),  // If the paths don't exist, fine
+
         knexArtwork(userid, slug, slugnum).delete()
       ])
       trx.commit()
@@ -204,8 +185,10 @@ export default class ArtworkController {
 
   static async get(req: Request, res: Response) {
 
-    // TODO filters!
-    // TODO different orders?
+    const column = req.query.order as string
+    const order = req.query.direction as string
+    const page = Number(req.query.page)
+    const perPage = Number(req.query.perPage)
 
     const results = await
       knex('artworks')
@@ -222,7 +205,11 @@ export default class ArtworkController {
         'img_path_medium',
         'img_path_thumbnail')
       .where('user_id', req.user.id)
-      .orderBy('created_at')
+      .orderBy([{ column, order }])
+      .limit(perPage)
+      .offset((page - 1) * perPage)
+
+    const totalWorks = (await knex('artworks').select(knex.raw('COUNT(*) AS total')).first()).total
 
     const works = results.map(work => { return {
       uuid: work.uuid,
@@ -235,10 +222,10 @@ export default class ArtworkController {
         original: artworkImgEndpoint(work.slug, work.slug_num, 'original'),
         medium: artworkImgEndpoint(work.slug, work.slug_num, 'medium'),
         thumbnail: artworkImgEndpoint(work.slug, work.slug_num, 'thumbnail')
-      }
+      },
     }})
 
-    res.status(200).json(works)
+    res.status(200).json({ totalWorks, works })
   }
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
@@ -280,7 +267,15 @@ export default class ArtworkController {
         original: artworkImgEndpoint(slug, slugnum, 'original'),
         medium: artworkImgEndpoint(slug, slugnum, 'medium'),
         thumbnail: artworkImgEndpoint(slug, slugnum, 'thumbnail')
-      }
+      },
+      editable: true 
+      // TODO artork editable iff there exists no publication for which an actual social media post has been made
+      //   to implement that, make a function that will add the joins and columns to the query builder
+      //   so it can be easily reused without replicating this logic in each case 
+      //   (we'll use not only to tell the client that it's not editable, so it can disable the edit/delete buttons,
+      //   but also for verifying in the update and delete endpoints)
+      //   [not a boolean function that does the query because then it's one extra database query,
+      //   whereas with this approach we only do one query; more efficient]
     })
   }
 
@@ -304,4 +299,29 @@ export default class ArtworkController {
     }
   }
 
+}
+
+
+function knexArtwork(userid: number, slug: string, slugnum: number) {
+  return knex('artworks')
+    .where('user_id', userid)
+    .andWhere('slug', slug)
+    .andWhere('slug_num', slugnum)
+}
+
+
+async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
+  const currnum = (await
+    knex('artworks')
+    .select(knex.raw('MAX(slug_num) AS num'))
+    .where('slug', slug)
+    .andWhere('user_id', userId)
+    .first()
+  )?.num
+  return 1 + (currnum ? Number(currnum) : 0)
+}
+
+
+function artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
+  return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
 }
