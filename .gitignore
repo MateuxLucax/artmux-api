@@ -1,4 +1,5 @@
 database/
+!src/database/
 artworkimg/*
 !artworkimg/.gitkeep
 !artworkimg/trash

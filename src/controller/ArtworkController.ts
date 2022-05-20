@@ -333,6 +333,16 @@ export default class ArtworkController {
     }
   }
 
+  static async getAllTags(req: Request, res: Response, next: NextFunction) {
+    try {
+      const query = knex('tags').select('id', 'name').where('user_id', req.user.id);
+      const tags = (await query).map(x => { return { id: Number(x.id), name: x.name }; })
+      res.status(200).json(tags);
+    } catch(err) {
+      next(err);
+    }
+  }
+
 }
 
 

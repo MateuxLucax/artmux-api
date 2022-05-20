@@ -4,12 +4,15 @@ import auth from "./auth"
 import users from "./users"
 import artworks from "./artworks"
 import { errorMidleware } from "../middlewares/errorMiddleware"
+import ArtworkController from "../controller/ArtworkController"
 
 const router = Router()
 
 router.use("/auth", auth)
 router.use("/users", users)
 router.use("/artworks", artworks)
+
+router.get('/tags/', ArtworkController.getAllTags)
 
 router.get("/", (req, res) => {
   res.json({
