@@ -7,7 +7,7 @@ import crypto from 'crypto'
 
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug'
 import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, getArtworkImgPaths } from '../utils/artworkImg'
-
+import { addFilters } from '../utils/queryFilters'
 
 export default class ArtworkController {
 
@@ -183,49 +183,83 @@ export default class ArtworkController {
     }
   }
 
-  static async get(req: Request, res: Response) {
+  static async get(req: Request, res: Response, next: NextFunction) {
 
-    const column = req.query.order as string
+    const field = req.query.order as string
     const order = req.query.direction as string
     const page = Number(req.query.page)
     const perPage = Number(req.query.perPage)
 
-    const results = await
-      knex('artworks')
-      .select(
-        'uuid',
-        'slug',
-        'slug_num',
-        'user_id',
-        'title',
-        'observations',
-        'created_at',
-        'updated_at',
-        'img_path_original',
-        'img_path_medium',
-        'img_path_thumbnail')
-      .where('user_id', req.user.id)
-      .orderBy([{ column, order }])
-      .limit(perPage)
-      .offset((page - 1) * perPage)
+    let filters = [];
+    try {
+      const filterArray = [req.query.filters ?? []].flat() as string[];
+      filters = (filterArray).map(x => JSON.parse(x));
+    } catch(err) {
+      next({ statusCode: 400, errorMessage: 'Malformed filters, could not parse as JSON' });
+    }
 
-    const totalWorks = (await knex('artworks').select(knex.raw('COUNT(*) AS total')).first()).total
+    // for now field = column in the table
+    // but it won't be that way when we start supporting tags
 
-    const works = results.map(work => { return {
-      uuid: work.uuid,
-      slug: makeNumberedSlug(work.slug, work.slug_num),
-      title: work.title,
-      observations: work.observations,
-      createdAt: work.created_at,
-      updatedAt: work.updated_at,
-      imagePaths: {
-        original: artworkImgEndpoint(work.slug, work.slug_num, 'original'),
-        medium: artworkImgEndpoint(work.slug, work.slug_num, 'medium'),
-        thumbnail: artworkImgEndpoint(work.slug, work.slug_num, 'thumbnail')
-      },
-    }})
+    if (page <= 0) next({ statusCode: 400, errorMessage: 'Page must be non-negative' });
+    if (perPage <= 0) next({ statusCode: 400, errorMessage: 'Works per page must be non-negative' });
+    
+    const orderSupportedFields = ['created_at', 'updated_at', 'title'];
+    if (!orderSupportedFields.includes(field)) next({
+      statusCode: 400,
+      errorMessage: `'order' must have one of these values: ${orderSupportedFields.join(', ')}`
+    });
 
-    res.status(200).json({ totalWorks, works })
+    if (order != 'asc' && order != 'desc') next({
+      statusCode: 400,
+      errorMessage: `'direction' must be 'asc' or 'desc'`
+    });
+
+    try {
+      const query =
+        knex('artworks')
+        .select(
+          'uuid',
+          'slug',
+          'slug_num',
+          'user_id',
+          'title',
+          'observations',
+          'created_at',
+          'updated_at',
+          'img_path_original',
+          'img_path_medium',
+          'img_path_thumbnail',
+          knex.raw('COUNT(*) OVER() AS total_works'))
+        .where('user_id', req.user.id)
+        .orderBy([{ column: field, order }])
+        .limit(perPage)
+        .offset((page - 1) * perPage);
+
+      addFilters(query, filters);
+
+      const results = await query;
+
+      const totalWorks = results.length > 0 ? results[0].total_works : 0;
+
+      const works = results.map(work => { return {
+        uuid: work.uuid,
+        slug: makeNumberedSlug(work.slug, work.slug_num),
+        title: work.title,
+        observations: work.observations,
+        createdAt: work.created_at,
+        updatedAt: work.updated_at,
+        imagePaths: {
+          original: artworkImgEndpoint(work.slug, work.slug_num, 'original'),
+          medium: artworkImgEndpoint(work.slug, work.slug_num, 'medium'),
+          thumbnail: artworkImgEndpoint(work.slug, work.slug_num, 'thumbnail')
+        },
+      }});
+
+      res.status(200).json({ totalWorks, works })
+    } catch(err) {
+      next(err);
+    }
   }
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
