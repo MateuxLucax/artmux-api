@@ -15,10 +15,11 @@ const operatorNameToSymbol = new Map();
   ['greaterOrEqual', '>='] ]
 .forEach(([k, v]) => operatorNameToSymbol.set(k, v));
 
-export function addFilters(query: Knex.QueryBuilder, filters: Filter[]) {
+// Read 'or' as a verb; a more verbose equivalent name would be 'combineFiltersWithOr'
+function orFilters(query: Knex.QueryBuilder, filters: Filter[]) {
   for (const filter of filters) {
     if (filter.operator == 'between') {
-      query.andWhereBetween(filter.name, filter.value);
+      query.orWhereBetween(filter.name, filter.value);
     } else if (filter.operator == 'contains' || filter.operator == 'startsWith' || filter.operator == 'endsWith') {
       let value = filter.value;
       if (filter.operator == 'contains' || filter.operator == 'startsWith') {
@@ -27,11 +28,26 @@ export function addFilters(query: Knex.QueryBuilder, filters: Filter[]) {
       if (filter.operator == 'contains' || filter.operator == 'endsWith') {
         value = value + '%';
       }
-      query.andWhereILike(filter.name, value);
+      query.orWhereILike(filter.name, value);
     } else if (operatorNameToSymbol.has(filter.operator)) {
-      query.andWhere(filter.name, operatorNameToSymbol.get(filter.operator), filter.value);
+      query.orWhere(filter.name, operatorNameToSymbol.get(filter.operator), filter.value);
     } else {
       throw `Unsupported filter operator ${filter.operator}`;
     }
+  }
+}
+
+export function addFilters(query: Knex.QueryBuilder, filters: Filter[]) {
+  // Filters on the same field are combined with OR
+  const byField = new Map();
+  for (const filter of filters) {
+    if (byField.has(filter.name)) {
+      byField.get(filter.name).push(filter)
+    } else {
+      byField.set(filter.name, [filter]);
+    }
+  }
+  for (const filters of byField.values()) {
+    query.andWhere(function() { orFilters(this, filters) });
   }
 }
