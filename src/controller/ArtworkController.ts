@@ -39,6 +39,14 @@ export default class ArtworkController {
         const title = fields.title as string;
         const observations = fields.observations as string;
 
+        let tags;
+        const tagsJSON = fields.tags as string;
+        try {
+          tags = JSON.parse(tagsJSON);
+        } catch(err) {
+          throw { statusCode: 400, errorMessage: `Malformed tags, could not parse JSON: ${tagsJSON}`}
+        }
+
         const slug = makeSlug(title)
         const slugnum = await nextArtworkSlugnum(trx, userId, slug)
         const slugfull = makeNumberedSlug(slug, slugnum)
@@ -63,6 +71,8 @@ export default class ArtworkController {
           img_path_medium: imgPaths.medium,
           img_path_thumbnail: imgPaths.thumbnail,
         })
+
+        await tagArtwork(trx, userId, artworkUUID, tags);
 
         trx.commit()
         res.status(201).json({ uuid: artworkUUID, slug: slugfull })
@@ -95,20 +105,29 @@ export default class ArtworkController {
         const observations = fields['observations'] as string
         const images = [files['image']].flat()
 
+        const tagsJSON = fields['tags'] as string;
+        let tags;
+        try {
+          tags = JSON.parse(tagsJSON);
+        } catch(err) {
+          throw { statusCode: 400, errorMessage: `Malformed tags, could not parse JSON: ${tags}` };
+        }
+
         const oldwork = await
           knexArtwork(userid, oldslug, oldslugnum)
-          .select('title', 'img_path_original', 'img_path_medium', 'img_path_thumbnail')
-          .first()
+          .select('uuid', 'title', 'img_path_original', 'img_path_medium', 'img_path_thumbnail')
+          .first();
 
-        const slug = makeSlug(title)
-        const slugChanged = oldslug != slug;
-          
-        const slugnum = slugChanged ? await nextArtworkSlugnum(trx, userid, slug) : oldslugnum;
-        const slugfull = makeNumberedSlug(slug, slugnum)
+        const uuid = oldwork.uuid;
+
+        const newslug = makeSlug(title)
+        const slugChanged = oldslug != newslug;
+        const newslugnum = slugChanged ? await nextArtworkSlugnum(trx, userid, newslug) : oldslugnum;
+        const newslugfull = makeNumberedSlug(newslug, newslugnum)
 
         const updateObject = {
-          slug: slug,
-          slug_num: slugnum,
+          slug: newslug,
+          slug_num: newslugnum,
           title: title,
           observations: observations,
           updated_at: (new Date()).toISOString()
@@ -121,13 +140,14 @@ export default class ArtworkController {
         }
 
         if (images.length > 0 && images[0] != undefined) {
+          // The user changed the artwork image
           imgtrx.setUploadedFile(images[0].filepath)
 
           const [, ext] = /.*\.(.*)/.exec(images[0].originalFilename ?? '') ?? []
           if (!ext) throw { statusCode: 400, errorMessage: 'Extensionless file' }
           await imgtrx.delete(Object.values(oldPaths))
 
-          const paths = makeArtworkImgPaths(userid, slugfull, ext)
+          const paths = makeArtworkImgPaths(userid, newslugfull, ext)
           await imgtrx.create(paths)
 
           Object.assign(updateObject, {
@@ -136,8 +156,10 @@ export default class ArtworkController {
             img_path_thumbnail: paths.thumbnail,
           })
         } else if (slugChanged) {
+          // The user didn't change the artwork image, but still changed the title
+          // so we need to update the image names accordingly
           const [, ext] = /.*\.(.*)/.exec(oldPaths.original) ?? []
-          const paths = makeArtworkImgPaths(userid, slugfull, ext)
+          const paths = makeArtworkImgPaths(userid, newslugfull, ext)
           await imgtrx.rename(oldPaths, paths)
 
           Object.assign(updateObject, {
@@ -147,10 +169,13 @@ export default class ArtworkController {
           })
         }
 
-        await knexArtwork(userid, oldslug, oldslugnum).update(updateObject);
+        await trx('artworks').where('uuid', uuid).update(updateObject);
+
+        await trx('artwork_has_tags').where('artwork_uuid', uuid).delete();
+        await tagArtwork(trx, userid, uuid, tags);
 
         trx.commit()
-        res.status(200).json({ slug: slugfull })
+        res.status(200).json({ slug: newslugfull })
       } catch (err) {
         trx.rollback()
         imgtrx.rollback()
@@ -267,21 +292,29 @@ export default class ArtworkController {
     const { slug, slugnum } = parseNumberedSlug(req.params.slug)
 
     const result = await
-      knex('artworks')
+      knex({a: 'artworks'})
+      .leftJoin({at: 'artwork_has_tags'}, 'at.artwork_uuid', 'a.uuid')
+      .leftJoin({t: 'tags'}, 't.id', 'at.tag_id')
+      .where('a.user_id', userId)
+      .andWhere('a.slug', slug)
+      .andWhere('a.slug_num', slugnum)
       .select(
-        'uuid',
-        'user_id',
-        'title',
-        'observations',
-        'created_at',
-        'updated_at',
-        'img_path_original',
-        'img_path_medium',
-        'img_path_thumbnail')
-      .where('user_id', userId)
-      .andWhere('slug', slug)
-      .andWhere('slug_num', slugnum)
-      .first()
+        'a.uuid',
+        'a.user_id',
+        'a.title',
+        'a.observations',
+        'a.created_at',
+        'a.updated_at',
+        'a.img_path_original',
+        'a.img_path_medium',
+        'a.img_path_thumbnail',
+        knex.raw("jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name)) as tags"))
+      .groupBy('uuid')
+      .first();
+
+    if (result.tags[0].id == null) {
+      result.tags = [];
+    }
 
     if (!result) {
       next({
@@ -297,6 +330,7 @@ export default class ArtworkController {
       observations: result.observations,
       createdAt: result.created_at,
       updatedAt: result.updated_at,
+      tags: result.tags,
       imagePaths: {
         original: artworkImgEndpoint(slug, slugnum, 'original'),
         medium: artworkImgEndpoint(slug, slugnum, 'medium'),
@@ -368,4 +402,24 @@ async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
 
 function artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
   return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
+}
+
+
+type Tag = {
+  name: string,
+  id?: number
+};
+
+async function tagArtwork(knex: Knex, userID: number, artworkUUID: string, tags: Tag[]) {
+  const tagIds = await Promise.all(tags.map(tag => {
+    if ('id' in tag) return tag.id;
+    return knex.into('tags')
+               .insert({ user_id: userID, name: tag.name })
+               .returning('id')
+               .then(([{id}]) => id)
+  }));
+  return Promise.all(tagIds.map(
+    id => knex.into('artwork_has_tags')
+              .insert({ artwork_uuid: artworkUUID, tag_id: id })
+  ));
 }
