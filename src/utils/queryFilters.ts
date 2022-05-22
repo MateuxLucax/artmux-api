@@ -23,10 +23,10 @@ function orFilters(query: Knex.QueryBuilder, filters: Filter[]) {
     } else if (filter.operator == 'contains' || filter.operator == 'startsWith' || filter.operator == 'endsWith') {
       let value = filter.value;
       if (filter.operator == 'contains' || filter.operator == 'startsWith') {
-        value = '%' + value;
+        value = value + '%';
       }
       if (filter.operator == 'contains' || filter.operator == 'endsWith') {
-        value = value + '%';
+        value = '%'+ value;
       }
       query.orWhereILike(filter.name, value);
     } else if (operatorNameToSymbol.has(filter.operator)) {
