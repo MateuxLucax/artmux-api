@@ -59,23 +59,25 @@ export default class ArtworkController {
         const imgPaths = makeArtworkImgPaths(userId, slugfull, ext)
         await imgtrx.create(imgPaths)
 
-        const artworkUUID = crypto.randomUUID()
-        await trx('artworks').insert({
-          uuid: artworkUUID,
-          slug: slug,
-          slug_num: slugnum,
-          user_id: userId,
-          title: title,
-          observations: observations,
-          img_path_original: imgPaths.original,
-          img_path_medium: imgPaths.medium,
-          img_path_thumbnail: imgPaths.thumbnail,
-        })
+        const artworkID = await
+          trx('artworks')
+          .insert({
+            slug: slug,
+            slug_num: slugnum,
+            user_id: userId,
+            title: title,
+            observations: observations,
+            img_path_original: imgPaths.original,
+            img_path_medium: imgPaths.medium,
+            img_path_thumbnail: imgPaths.thumbnail,
+          })
+          .returning('id')
+          .then(([{id}]) => id);
 
-        await tagArtwork(trx, userId, artworkUUID, tags);
+        await tagArtwork(trx, userId, artworkID, tags);
 
         trx.commit()
-        res.status(201).json({ uuid: artworkUUID, slug: slugfull })
+        res.status(201).json({ id: artworkID, slug: slugfull })
       } catch(err) {
         trx.rollback()
         await imgtrx.rollback()
@@ -114,11 +116,11 @@ export default class ArtworkController {
         }
 
         const oldwork = await
-          knexArtwork(userid, oldslug, oldslugnum)
-          .select('uuid', 'title', 'img_path_original', 'img_path_medium', 'img_path_thumbnail')
+          knexArtworkBySlug(trx, userid, oldslug, oldslugnum)
+          .select('id', 'title', 'img_path_original', 'img_path_medium', 'img_path_thumbnail')
           .first();
 
-        const uuid = oldwork.uuid;
+        const id = oldwork.id;
 
         const newslug = makeSlug(title)
         const slugChanged = oldslug != newslug;
@@ -169,10 +171,9 @@ export default class ArtworkController {
           })
         }
 
-        await trx('artworks').where('uuid', uuid).update(updateObject);
-
-        await trx('artwork_has_tags').where('artwork_uuid', uuid).delete();
-        await tagArtwork(trx, userid, uuid, tags);
+        await trx('artworks').where('id', id).update(updateObject);
+        await untagArtwork(trx, id);
+        await tagArtwork(trx, userid, id, tags);
 
         trx.commit()
         res.status(200).json({ slug: newslugfull })
@@ -197,7 +198,7 @@ export default class ArtworkController {
         .then(paths => imgtrx.delete(Object.values(paths)))
         .catch(console.error),  // If the paths don't exist, fine
 
-        knexArtwork(userid, slug, slugnum).delete()
+        knexArtworkBySlug(trx, userid, slug, slugnum).delete()
       ])
       trx.commit()
       res.status(204).end()
@@ -244,7 +245,7 @@ export default class ArtworkController {
       const query =
         knex('artworks')
         .select(
-          'uuid',
+          'id',
           'slug',
           'slug_num',
           'user_id',
@@ -268,7 +269,7 @@ export default class ArtworkController {
       const totalWorks = results.length > 0 ? results[0].total_works : 0;
 
       const works = results.map(work => { return {
-        uuid: work.uuid,
+        id: work.id,
         slug: makeNumberedSlug(work.slug, work.slug_num),
         title: work.title,
         observations: work.observations,
@@ -293,13 +294,13 @@ export default class ArtworkController {
 
     const result = await
       knex({a: 'artworks'})
-      .leftJoin({at: 'artwork_has_tags'}, 'at.artwork_uuid', 'a.uuid')
+      .leftJoin({at: 'artwork_has_tags'}, 'at.artwork_id', 'a.id')
       .leftJoin({t: 'tags'}, 't.id', 'at.tag_id')
       .where('a.user_id', userId)
       .andWhere('a.slug', slug)
       .andWhere('a.slug_num', slugnum)
       .select(
-        'a.uuid',
+        'a.id',
         'a.user_id',
         'a.title',
         'a.observations',
@@ -309,7 +310,7 @@ export default class ArtworkController {
         'a.img_path_medium',
         'a.img_path_thumbnail',
         knex.raw("jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name)) as tags"))
-      .groupBy('uuid')
+      .groupBy('a.id')
       .first();
 
     if (result.tags[0].id == null) {
@@ -325,7 +326,7 @@ export default class ArtworkController {
     }
 
     res.status(200).json({
-      uuid: result.uuid,
+      id: result.id,
       title: result.title,
       observations: result.observations,
       createdAt: result.created_at,
@@ -380,7 +381,7 @@ export default class ArtworkController {
 }
 
 
-function knexArtwork(userid: number, slug: string, slugnum: number) {
+function knexArtworkBySlug(knex: Knex, userid: number, slug: string, slugnum: number) {
   return knex('artworks')
     .where('user_id', userid)
     .andWhere('slug', slug)
@@ -410,7 +411,11 @@ type Tag = {
   id?: number
 };
 
-async function tagArtwork(knex: Knex, userID: number, artworkUUID: string, tags: Tag[]) {
+async function untagArtwork(knex: Knex, artworkID: number) {
+  await knex('artwork_has_tags').where('artwork_id', artworkID).delete();
+}
+
+async function tagArtwork(knex: Knex, userID: number, artworkID: number, tags: Tag[]) {
   const tagIds = await Promise.all(tags.map(tag => {
     if ('id' in tag) return tag.id;
     return knex.into('tags')
@@ -418,8 +423,6 @@ async function tagArtwork(knex: Knex, userID: number, artworkUUID: string, tags:
                .returning('id')
                .then(([{id}]) => id)
   }));
-  return Promise.all(tagIds.map(
-    id => knex.into('artwork_has_tags')
-              .insert({ artwork_uuid: artworkUUID, tag_id: id })
-  ));
+  await knex.into('artwork_has_tags')
+            .insert(tagIds.map(id => { return { artwork_id: artworkID, tag_id: id }; }));
 }
