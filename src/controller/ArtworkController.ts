@@ -193,13 +193,10 @@ export default class ArtworkController {
     const trx = await knex.transaction()
     const imgtrx = new ArtworkImageTransaction()
     try {
-      await Promise.all([
-        getArtworkImgPaths(userid, slugfull)
+      await knexArtworkBySlug(trx, userid, slug, slugnum).delete();
+      await getArtworkImgPaths(userid, slugfull)
         .then(paths => imgtrx.delete(Object.values(paths)))
-        .catch(console.error),  // If the paths don't exist, fine
-
-        knexArtworkBySlug(trx, userid, slug, slugnum).delete()
-      ])
+        .catch(console.error);  // If the paths don't exist, fine
       trx.commit()
       res.status(204).end()
     } catch(err) {

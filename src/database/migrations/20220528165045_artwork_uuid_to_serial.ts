@@ -14,6 +14,8 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema
   .alterTable('artwork_has_tags', at => {
     at.foreign('artwork_id').references('artworks.id')
+      .onUpdate('cascade')
+      .onDelete('cascade');
     at.primary(['artwork_id', 'tag_id']);
     at.dropColumn('artwork_uuid');
   })
@@ -43,6 +45,8 @@ export async function down(knex: Knex): Promise<void> {
   await knex.schema
   .alterTable('artwork_has_tags', at => {
     at.foreign('artwork_uuid').references('artworks.uuid')
+      .onUpdate('cascade')
+      .onDelete('cascade');
     at.dropColumn('artwork_id');
   })
   .alterTable('artworks', a => a.dropColumn('id'));
