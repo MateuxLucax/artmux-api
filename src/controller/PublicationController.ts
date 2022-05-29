@@ -5,18 +5,26 @@ import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug';
 
 export default class PublicationController {
 
+  private static validateCreateBody(body: any) {
+    const missing = [];
+    if (!body.hasOwnProperty('title') || typeof body.title != 'string') body.title = '';
+    if (body.title.trim() == '') missing.push('title');
+    if (!body.hasOwnProperty('text') || typeof body.text != 'string') body.text = '';
+    if (body.text.trim() == '') missing.push('text');
+    if (missing.length > 0) {
+      throw { statusCode: 400, errorMessage: `Missing fields: ${missing.join(', ')}`};
+    }
+    return {
+      title: body.title,
+      text: body.text,
+      artworks: body.artworks ?? []
+    };
+  }
+
   static async create(req: Request, res: Response, next: NextFunction) {
     const trx = await knex.transaction();
     try {
-      if (!req.body.hasOwnProperty('text') || typeof req.body.text != 'string') {
-        throw { statusCode: 400, errorMessage: 'Missing field: text' };
-      }
-
-      req.body.title = req.body.title?.trim() ?? '';
-
-      const title = req.body.title == '' ? 'Sem título' : req.body.title;
-      const text = req.body.text.trim();
-      const artworks = req.body.artworks ?? [];
+      const { title, text, artworks } = PublicationController.validateCreateBody(req.body);
 
       const slugtext = makeSlug(title);
       const slugnum = await nextPublicationSlugnum(req.user.id, slugtext);
