@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import knex from '../database';
+import { ArtworkModel } from '../model/ArtworkModel';
 import { artworkImgEndpoint } from '../utils/artworkImg';
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug';
 
@@ -84,13 +85,8 @@ export default class PublicationController {
         .first();
       const pub = await pubquery;
 
-      const artquery =
-        knex('artworks')
-        .select('*')
-        .whereIn('id', pub.artwork_ids)
-      const artworks = await artquery;
-
-      // TODO probably should start using some kind of ArtworkModel or whatever, would make the stuff below easier
+      const artworks = await ArtworkModel.findById(knex, pub.artwork_ids ?? []);
+      await Promise.all(artworks.map(a => ArtworkModel.adjoinTags(knex, a)));
 
       res.status(200).json({
         id: pub.id,
@@ -98,19 +94,7 @@ export default class PublicationController {
         text: pub.text,
         createdAt: pub.created_at,
         updatedAt: pub.updated_at,
-        artworks: artworks.map(work => { return {
-          id: work.id,
-          slug: makeNumberedSlug(work.slug, work.slug_num),
-          title: work.title,
-          observations: work.observations,
-          createdAt: work.created_at,
-          updatedAt: work.updated_at,
-          imagePaths: {
-            original: artworkImgEndpoint(work.slug, work.slug_num, 'original'),
-            medium: artworkImgEndpoint(work.slug, work.slug_num, 'medium'),
-            thumbnail: artworkImgEndpoint(work.slug, work.slug_num, 'thumbnail')
-          }
-        }})
+        artworks
       });
     } catch(err) {
       next(err);

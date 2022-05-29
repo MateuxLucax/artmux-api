@@ -4,8 +4,13 @@ import knex from '../database'
 import { Knex } from 'knex'
 
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug'
-import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, getArtworkImgPaths } from '../utils/artworkImg'
-import { addFilters } from '../utils/queryFilters'
+import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, getArtworkImgPaths, artworkImgEndpoint } from '../utils/artworkImg'
+import { ArtworkModel } from '../model/ArtworkModel'
+
+
+//* We could refactor the controller and the model further so
+//* the controller never interacts directly with the database,
+//* but always indirectly using the model.
 
 export default class ArtworkController {
 
@@ -206,141 +211,56 @@ export default class ArtworkController {
 
   static async get(req: Request, res: Response, next: NextFunction) {
 
-    const field = req.query.order as string
-    const order = req.query.direction as string
+    console.log(req.query);
+
+    const order = req.query.order as string
+    const direction = req.query.direction as string
     const page = Number(req.query.page)
     const perPage = Number(req.query.perPage)
 
     let filters = [];
     try {
       const filterArray = [req.query.filters ?? []].flat() as string[];
-      filters = (filterArray).map(x => JSON.parse(x));
+      filters = filterArray.map(x => JSON.parse(x));
     } catch(err) {
       next({ statusCode: 400, errorMessage: 'Malformed filters, could not parse as JSON' });
     }
-
-    // for now field = column in the table
-    // but it won't be that way when we start supporting tags
 
     if (page <= 0) next({ statusCode: 400, errorMessage: 'Page must be non-negative' });
     if (perPage <= 0) next({ statusCode: 400, errorMessage: 'Works per page must be non-negative' });
     
     const orderSupportedFields = ['created_at', 'updated_at', 'title'];
-    if (!orderSupportedFields.includes(field)) next({
+    if (!orderSupportedFields.includes(order)) next({
       statusCode: 400,
       errorMessage: `'order' must have one of these values: ${orderSupportedFields.join(', ')}`
     });
 
-    if (order != 'asc' && order != 'desc') next({
+    if (direction != 'asc' && direction != 'desc') next({
       statusCode: 400,
       errorMessage: `'direction' must be 'asc' or 'desc'`
     });
 
+    const params = {
+      userid: req.user.id,
+      page, perPage, order, direction, filters
+    };
+
     try {
-      const query =
-        knex('artworks')
-        .select(
-          'id',
-          'slug',
-          'slug_num',
-          'user_id',
-          'title',
-          'observations',
-          'created_at',
-          'updated_at',
-          'img_path_original',
-          'img_path_medium',
-          'img_path_thumbnail',
-          knex.raw('COUNT(*) OVER() AS total_works'))
-        .where('user_id', req.user.id)
-        .orderBy([{ column: field, order }])
-        .limit(perPage)
-        .offset((page - 1) * perPage);
-
-      addFilters(query, filters);
-
-      const results = await query;
-
-      const totalWorks = results.length > 0 ? results[0].total_works : 0;
-
-      const works = results.map(work => { return {
-        id: work.id,
-        slug: makeNumberedSlug(work.slug, work.slug_num),
-        title: work.title,
-        observations: work.observations,
-        createdAt: work.created_at,
-        updatedAt: work.updated_at,
-        imagePaths: {
-          original: artworkImgEndpoint(work.slug, work.slug_num, 'original'),
-          medium: artworkImgEndpoint(work.slug, work.slug_num, 'medium'),
-          thumbnail: artworkImgEndpoint(work.slug, work.slug_num, 'thumbnail')
-        },
-      }});
-
-      res.status(200).json({ totalWorks, works })
+      const { total, artworks } = await ArtworkModel.search(knex, params);
+      res.status(200).json({ total, artworks })
     } catch(err) {
       next(err);
     }
   }
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
-    const userId = req.user.id
-    const { slug, slugnum } = parseNumberedSlug(req.params.slug)
-
-    const result = await
-      knex({a: 'artworks'})
-      .leftJoin({at: 'artwork_has_tags'}, 'at.artwork_id', 'a.id')
-      .leftJoin({t: 'tags'}, 't.id', 'at.tag_id')
-      .where('a.user_id', userId)
-      .andWhere('a.slug', slug)
-      .andWhere('a.slug_num', slugnum)
-      .select(
-        'a.id',
-        'a.user_id',
-        'a.title',
-        'a.observations',
-        'a.created_at',
-        'a.updated_at',
-        'a.img_path_original',
-        'a.img_path_medium',
-        'a.img_path_thumbnail',
-        knex.raw("jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name)) as tags"))
-      .groupBy('a.id')
-      .first();
-
-    if (result.tags[0].id == null) {
-      result.tags = [];
+    const artwork = await ArtworkModel.findBySlug(knex, req.user.id, req.params.slug)
+    if (artwork != null) {
+      await ArtworkModel.adjoinTags(knex, artwork);
+      res.status(200).json(artwork);
+    } else {
+      next({ statusCode: 404, errorMessage: `No artwork found matching user ${req.user.id}, slug ${req.params.slug}`});
     }
-
-    if (!result) {
-      next({
-        statusCode: 404,
-        errorMessage: `No artwork found matching user ${userId}, slug ${req.params.slug}`
-      })
-      return
-    }
-
-    res.status(200).json({
-      id: result.id,
-      title: result.title,
-      observations: result.observations,
-      createdAt: result.created_at,
-      updatedAt: result.updated_at,
-      tags: result.tags,
-      imagePaths: {
-        original: artworkImgEndpoint(slug, slugnum, 'original'),
-        medium: artworkImgEndpoint(slug, slugnum, 'medium'),
-        thumbnail: artworkImgEndpoint(slug, slugnum, 'thumbnail')
-      },
-      editable: true 
-      // TODO artork editable iff there exists no publication for which an actual social media post has been made
-      //   to implement that, make a function that will add the joins and columns to the query builder
-      //   so it can be easily reused without replicating this logic in each case 
-      //   (we'll use not only to tell the client that it's not editable, so it can disable the edit/delete buttons,
-      //   but also for verifying in the update and delete endpoints)
-      //   [not a boolean function that does the query because then it's one extra database query,
-      //   whereas with this approach we only do one query; more efficient]
-    })
   }
 
   static async getImage(req: Request, res: Response, next: NextFunction) {
@@ -376,6 +296,7 @@ export default class ArtworkController {
 }
 
 
+// TODO delete at some point
 function knexArtworkBySlug(knex: Knex, userid: number, slug: string, slugnum: number) {
   return knex('artworks')
     .where('user_id', userid)

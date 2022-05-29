@@ -18,9 +18,7 @@ app.use((req, res, next) => {
 
 app.use(routes)
 
-app.use(cors({
-    origin: CORS_ORIGIN
-}))
+app.use(cors({ origin: CORS_ORIGIN }))
 
 app.listen(PORT, () => {
     console.log(`Server listening under ${HOSTNAME}:${PORT}`)
