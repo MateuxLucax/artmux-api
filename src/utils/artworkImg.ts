@@ -126,7 +126,7 @@ export class ArtworkImageTransaction {
     // Suppose we do an update where we change the image but not the title.
     // Then we need to move the current files to the trash and create new files
     // with the same names. Therefore, to undo this, we can't unlink after restoring
-    // from the trash -- we would remove the same images we just restored!
+    // from the trash -- we would remove the images we just restored.
     await Promise.allSettled(this.createdPaths.map(fs.unlink))
     await Promise.allSettled(
       this.trashedPaths.map(file => asyncExec(`mv '${file}' '${ARTWORK_IMG_DIRECTORY}'`))

@@ -18,21 +18,20 @@ const operatorNameToSymbol = new Map();
 // Read 'or' as a verb; a more verbose equivalent name would be 'combineFiltersWithOr'
 function orFilters(query: Knex.QueryBuilder, filters: Filter[]) {
   for (const filter of filters) {
-    if (filter.operator == 'between') {
-      query.orWhereBetween(filter.name, filter.value);
-    } else if (filter.operator == 'contains' || filter.operator == 'startsWith' || filter.operator == 'endsWith') {
-      let value = filter.value;
-      if (filter.operator == 'contains' || filter.operator == 'startsWith') {
-        value = value + '%';
-      }
-      if (filter.operator == 'contains' || filter.operator == 'endsWith') {
-        value = '%'+ value;
-      }
-      query.orWhereILike(filter.name, value);
-    } else if (operatorNameToSymbol.has(filter.operator)) {
-      query.orWhere(filter.name, operatorNameToSymbol.get(filter.operator), filter.value);
+    const name = filter.name;
+    const op   = filter.operator;
+    const val  = filter.value;
+    if (op == 'between') {
+      query.orWhereBetween(name, val);
+    } else if (op == 'contains' || op == 'startsWith' || op == 'endsWith') {
+      let x = val;
+      if (op == 'contains' || op == 'startsWith') x = x + '%';
+      if (op == 'contains' || op == 'endsWith')   x = '%' + x;
+      query.orWhereILike(name, x);
+    } else if (operatorNameToSymbol.has(op)) {
+      query.orWhere(name, operatorNameToSymbol.get(op), val);
     } else {
-      throw `Unsupported filter operator ${filter.operator}`;
+      throw `Unsupported filter.operator ${op}`;
     }
   }
 }

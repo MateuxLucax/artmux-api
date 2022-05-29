@@ -1,8 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
+import { Knex } from 'knex';
 import knex from '../database';
 import { ArtworkModel } from '../model/ArtworkModel';
-import { artworkImgEndpoint } from '../utils/artworkImg';
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug';
+
+//* Publications can be created/updated/deleted without actually being published in any platform
+//* There'll be a separate "publish" action for that later
+
+async function addArtworksToPublication(knex: Knex, pubID: number, artworkIDs: number[]) {
+  if (artworkIDs.length == 0) return;
+  await knex.into('publication_has_artworks').insert(
+    artworkIDs.map((id: number) => { return {publication_id: pubID, artwork_id: id}; })
+  );
+}
 
 export default class PublicationController {
 
@@ -18,14 +28,14 @@ export default class PublicationController {
     return {
       title: body.title,
       text: body.text,
-      artworks: body.artworks ?? []
+      artworkIDs: body.artworks ?? []
     };
   }
 
   static async create(req: Request, res: Response, next: NextFunction) {
     const trx = await knex.transaction();
     try {
-      const { title, text, artworks } = PublicationController.validateCreateBody(req.body);
+      const { title, text, artworkIDs } = PublicationController.validateCreateBody(req.body);
 
       const slugtext = makeSlug(title);
       const slugnum = await nextPublicationSlugnum(req.user.id, slugtext);
@@ -37,16 +47,63 @@ export default class PublicationController {
         .returning('id')
         .then(([{id}]) => id);
 
-      if (artworks.length > 0) {
-        await trx.into('publication_has_artworks').insert(
-          artworks.map((id: number) => { return {publication_id: pubID, artwork_id: id}; })
-        );
-      }
+      addArtworksToPublication(trx, pubID, artworkIDs);
 
       res.status(201).json({ id: pubID, slug });
       trx.commit();
     } catch (err) {
       trx.rollback();
+      next(err);
+    }
+  }
+
+  static async update(req: Request, res: Response, next: NextFunction) {
+    const oldSlug = req.params.slug;
+    const { slug: oldSlugText, slugnum: oldSlugNum } = parseNumberedSlug(oldSlug);
+    const userid = req.user.id;
+    const trx = await knex.transaction();
+
+    try {
+      const { title, text, artworkIDs } = PublicationController.validateCreateBody(req.body);
+
+      let updateObj: any = { title, text, updated_at: trx.raw('CURRENT_TIMESTAMP') };
+
+      const slugText = makeSlug(title);
+      let slugNum = oldSlugNum;
+      if (oldSlugText != slugText) {
+        slugNum = await nextPublicationSlugnum(userid, slugText);
+        updateObj.slug_text = slugText;
+        updateObj.slug_num = slugNum;
+      }
+
+      const pubID = await trx('publications')
+        .where('user_id', userid).andWhere('slug_text', oldSlugText).andWhere('slug_num', oldSlugNum)
+        .update(updateObj)
+        .returning('id')
+        .then(([{id}]) => id);
+
+      await trx('publication_has_artworks').where('publication_id', pubID).delete();
+      await addArtworksToPublication(trx, pubID, artworkIDs);
+
+      trx.commit();
+      res.status(200).json({ slug: makeNumberedSlug(slugText, slugNum) });
+    } catch (err) {
+      trx.rollback();
+      next(err);
+    }
+  }
+
+  static async delete(req: Request, res: Response, next: NextFunction) {
+    const slug = req.params.slug;
+    const { slug: slugtext, slugnum } = parseNumberedSlug(slug);
+    try {
+      await knex('publications')
+        .where('user_id', req.user.id)
+        .andWhere('slug_text', slugtext)
+        .andWhere('slug_num', slugnum)
+        .delete();
+      res.status(204).end();
+    } catch(err) {
       next(err);
     }
   }
@@ -84,6 +141,11 @@ export default class PublicationController {
         .groupBy('p.id')
         .first();
       const pub = await pubquery;
+
+      if (pub == undefined) throw {
+        statusCode: 404,
+        errorMessage: `No publication found matching user ${req.user.id}, slug ${slug}`
+      }
 
       const artworks = await ArtworkModel.findById(knex, pub.artwork_ids ?? []);
       await Promise.all(artworks.map(a => ArtworkModel.adjoinTags(knex, a)));

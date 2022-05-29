@@ -33,6 +33,7 @@ export default class ArtworkController {
         } else {
           imgtrx.setUploadedFile(images[0].filepath)
         }
+        //! Not as trivial to do something like validateCreateBody here, because we need to imgtrx.setUploadedFile before throwing. Better not to do it at all.
 
         if (missing.length > 0) {
           throw { statusCode: 400, errorMessage: `Missing ${missing.join(', ')}` }
@@ -135,7 +136,7 @@ export default class ArtworkController {
           slug_num: newslugnum,
           title: title,
           observations: observations,
-          updated_at: (new Date()).toISOString()
+          updated_at: trx.raw('CURRENT_TIMESTAMP')
         }
 
         const oldPaths = {
@@ -175,8 +176,8 @@ export default class ArtworkController {
         }
 
         await trx('artworks').where('id', id).update(updateObject);
-        await untagArtwork(trx, id);
-        await tagArtwork(trx, userid, id, tags);
+        await untagArtwork(trx, id);  // remove old tags
+        await tagArtwork(trx, userid, id, tags);  // add new tags
 
         trx.commit()
         res.status(200).json({ slug: newslugfull })
@@ -210,8 +211,6 @@ export default class ArtworkController {
   }
 
   static async get(req: Request, res: Response, next: NextFunction) {
-
-    console.log(req.query);
 
     const order = req.query.order as string
     const direction = req.query.direction as string
