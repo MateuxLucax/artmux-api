@@ -2,6 +2,7 @@ import { exec } from 'child_process'
 import path from 'path'
 import { promisify } from 'util'
 import { promises as fs } from 'fs'
+import { makeNumberedSlug } from './slug'
 
 export const ARTWORK_IMG_DIRECTORY = path.resolve('./artworkimg')
 export const ARTWORK_IMG_TRASH_DIRECTORY = path.resolve('./artworkimg/trash')
@@ -35,6 +36,11 @@ makeArtworkImgPaths(userId: number, slug: string, ext: string) {
     [ArtworkImgSize.Medium]:    makeArtworkImgPath(userId, slug, ArtworkImgSize.Medium,    ext),
     [ArtworkImgSize.Thumbnail]: makeArtworkImgPath(userId, slug, ArtworkImgSize.Thumbnail, ext)
   }
+}
+
+export function
+artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
+  return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
 }
 
 

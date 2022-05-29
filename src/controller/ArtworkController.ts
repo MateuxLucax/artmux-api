@@ -3,8 +3,6 @@ import formidable from 'formidable'
 import knex from '../database'
 import { Knex } from 'knex'
 
-import crypto from 'crypto'
-
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug'
 import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, getArtworkImgPaths } from '../utils/artworkImg'
 import { addFilters } from '../utils/queryFilters'
@@ -395,11 +393,6 @@ async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
     .first()
   )?.num
   return 1 + (currnum ? Number(currnum) : 0)
-}
-
-
-function artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
-  return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
 }
 
 
