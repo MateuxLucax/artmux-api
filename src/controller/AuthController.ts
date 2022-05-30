@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { UserModel } from "../model/UserModel"
 import { sign } from "jsonwebtoken"
 import { JWT_SECRET } from "../utils/environmentUtil"
-import { compare } from "bcryptjs"
+import { compare } from "bcrypt"
 
 export default class AuthController {
 
@@ -10,11 +10,11 @@ export default class AuthController {
     const { username, password, email } = request.body
 
     if (await UserModel.findByUsername(username)) {
-      return response.status(400).json({ error: "Username already registered" })
+      return response.status(400).json({ message: "Username already registered" })
     }
 
     if (await UserModel.findByEmail(email)) {
-      return response.status(400).json({ error: "Email already registered" })
+      return response.status(400).json({ message: "Email already registered" })
     }
 
     const { salt, hashedPassword } = await UserModel.hashPassword(password, username)
@@ -27,14 +27,18 @@ export default class AuthController {
   async signin(request: Request, response: Response) {
     const { username, password, keepLoggedIn } = request.body
 
+    if (!username || !password) {
+      return response.status(400).json({ message: "Malformed request" })
+    }
+
     const user = await UserModel.findByUsername(username)
 
     if (!user) {
-      return response.status(400).json({ error: "Username not found" })
+      return response.status(400).json({ message: "Username not found" })
     }
 
-    if (!compare(password + username + user.salt, user.password!)) {
-      return response.status(401).json({ error: "Invalid password" })
+    if (!await compare(password + username + user.salt, user.password!)) {
+      return response.status(401).json({ message: "Invalid password" })
     }
 
     const expiresIn = keepLoggedIn ? "7d" : "1h"

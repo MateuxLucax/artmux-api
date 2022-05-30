@@ -4,6 +4,7 @@ services:
   api:
     container_name: artmux-api
     restart: unless-stopped
+    hostname: artmux-api
     build:
       context: .
       dockerfile: ./docker/Dockerfile
@@ -13,6 +14,8 @@ services:
       - database
     volumes:
     - .:/usr/src/app
+    networks:
+      - artmux-network
 
   database:
     container_name: artmux-database
@@ -20,7 +23,6 @@ services:
     restart: unless-stopped
     tty: true
     environment:
-      # host.docker.internal can be used as host on WSL
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}

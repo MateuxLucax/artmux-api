@@ -20,7 +20,6 @@ services:
     restart: unless-stopped
     tty: true
     environment:
-      # host.docker.internal can be used as host on WSL
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}

@@ -1,5 +1,5 @@
 import knex from "../database"
-import { hash } from "bcryptjs"
+import { hash } from "bcrypt"
 import { randomBytes } from "crypto"
 
 export interface IUser {
@@ -27,7 +27,7 @@ export class UserModel {
   static table = "users"
 
   static async findByUsername(username: string): Promise<IUser> {
-    return await knex.table(this.table).select(this.columns.id, this.columns.salt, this.columns.username, this.columns.email).where({ username }).first()
+    return await knex.table(this.table).select(this.columns.id, this.columns.salt, this.columns.username, this.columns.email, this.columns.password).where({ username }).first()
   }
 
   static async findByEmail(email: string): Promise<IUser> {
