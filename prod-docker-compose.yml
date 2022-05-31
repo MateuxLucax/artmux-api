@@ -4,6 +4,8 @@ services:
   api:
     container_name: artmux-api
     restart: unless-stopped
+    image: artmux-api-prod:latest
+    hostname: artmux-api-prod
     build:
       context: .
       dockerfile: ./docker/prod/Dockerfile
@@ -11,8 +13,8 @@ services:
       - ${PORT}:${PORT}
     depends_on:
       - database
-    volumes:
-    - .:/usr/src/app
+    networks:
+      - artmux-network
 
   database:
     container_name: artmux-database
@@ -27,7 +29,6 @@ services:
       PGTZ: 'GMT-3'
     volumes:
       - ./database/prod:/var/lib/postgresql/data
-      # - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "${DB_PORT}:5432"
     networks:

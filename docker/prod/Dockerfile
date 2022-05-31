@@ -1,15 +1,18 @@
-FROM node:18-alpine
-
+# Build
+FROM node:18-alpine AS builder
 WORKDIR /usr/src/app
-
-COPY ["package.json", "tsconfig.json", ".env", "./"]
-
+COPY package.json tsconfig.json ./
+COPY .prod.env .env
 COPY ./src ./src
-
-RUN apk --update add imagemagick
-
 RUN npm install
+RUN npm run build
 
-RUN knex --knexfile dist/database/knexfile.js migrate:latest
-
-CMD npm run build && npm run start
+# Run
+FROM node:18-alpine
+WORKDIR /usr/src/app
+COPY package.json ./
+COPY .prod.env .env
+RUN apk --update add imagemagick
+RUN npm install --omit=dev
+COPY --from=builder /usr/src/app/dist ./dist
+CMD npm start
