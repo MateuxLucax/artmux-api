@@ -7,13 +7,13 @@ export const authMiddleware = () => {
     const authHeaders = request.headers.authorization
 
     if (!authHeaders) {
-      return response.status(401).json({ error: "Token is missing" })
+      return response.status(401).json({ message: "Token is missing" })
     }
 
     const [bearer, token] = authHeaders.split(" ")
 
     if (bearer != "Bearer") {
-      return response.status(401).json({ error: "Malformed token" })
+      return response.status(401).json({ message: "Malformed token" })
     }
 
     try {
@@ -25,7 +25,7 @@ export const authMiddleware = () => {
 
       next()
     } catch (err) {
-      return response.status(401).json({ error: "Unauthorized" })
+      return response.status(401).json({ message: "Unauthorized" })
     }
   }
 }
