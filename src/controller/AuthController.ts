@@ -9,6 +9,10 @@ export default class AuthController {
   async signup(request: Request, response: Response) {
     const { username, password, email } = request.body
 
+    if (!username || !password || !email) {
+      return response.status(400).json({ message: "Malformed request" })
+    }
+
     if (await UserModel.findByUsername(username)) {
       return response.status(400).json({ message: "Username already registered" })
     }
