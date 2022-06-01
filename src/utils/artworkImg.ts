@@ -40,7 +40,7 @@ makeArtworkImgPaths(userId: number, slug: string, ext: string) {
 
 export function
 artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
-  return `/artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
+  return `artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
 }
 
 
