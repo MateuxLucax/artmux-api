@@ -9,9 +9,20 @@ import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug';
 
 async function addArtworksToPublication(knex: Knex, pubID: number, artworkIDs: number[]) {
   if (artworkIDs.length == 0) return;
-  await knex.into('publication_has_artworks').insert(
+  await knex('publication_has_artworks').insert(
     artworkIDs.map((id: number) => { return {publication_id: pubID, artwork_id: id}; })
   );
+}
+
+async function nextPublicationSlugnum(knex: Knex, userid: number, slugtext: string) {
+  const query =
+    knex('publications')
+    .where('user_id', userid)
+    .andWhere('slug_text', slugtext)
+    .select(knex.raw('MAX(slug_num) AS num'))
+    .first();
+  const currnum = (await query)?.num;
+  return 1 + (currnum ? Number(currnum) : 0);
 }
 
 export default class PublicationController {
@@ -38,19 +49,18 @@ export default class PublicationController {
       const { title, text, artworkIDs } = PublicationController.validateCreateBody(req.body);
 
       const slugtext = makeSlug(title);
-      const slugnum = await nextPublicationSlugnum(req.user.id, slugtext);
+      const slugnum = await nextPublicationSlugnum(trx, req.user.id, slugtext);
       const slug = makeNumberedSlug(slugtext, slugnum);
 
-      const pubID = await trx
-        .into('publications')
+      const pubID = await trx('publications')
         .insert({ title, text, user_id: req.user.id, slug_text: slugtext, slug_num: slugnum })
         .returning('id')
         .then(([{id}]) => id);
 
-      addArtworksToPublication(trx, pubID, artworkIDs);
+      await addArtworksToPublication(trx, pubID, artworkIDs);
 
-      res.status(201).json({ id: pubID, slug });
       trx.commit();
+      res.status(201).json({ id: pubID, slug });
     } catch (err) {
       trx.rollback();
       next(err);
@@ -71,7 +81,7 @@ export default class PublicationController {
       const slugText = makeSlug(title);
       let slugNum = oldSlugNum;
       if (oldSlugText != slugText) {
-        slugNum = await nextPublicationSlugnum(userid, slugText);
+        slugNum = await nextPublicationSlugnum(trx, userid, slugText);
         updateObj.slug_text = slugText;
         updateObj.slug_num = slugNum;
       }
@@ -163,15 +173,4 @@ export default class PublicationController {
     }
   }
 
-}
-
-async function nextPublicationSlugnum(userid: number, slugtext: string) {
-  const query =
-    knex('publications')
-    .where('user_id', userid)
-    .andWhere('slug_text', slugtext)
-    .select(knex.raw('MAX(slug_num) AS num'))
-    .first();
-  const currnum = (await query)?.num;
-  return 1 + (currnum ? Number(currnum) : 0);
 }
