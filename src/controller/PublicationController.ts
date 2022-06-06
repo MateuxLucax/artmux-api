@@ -162,6 +162,7 @@ export default class PublicationController {
 
       res.status(200).json({
         id: pub.id,
+        slug,
         title: pub.title,
         text: pub.text,
         createdAt: pub.created_at,
