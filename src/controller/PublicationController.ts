@@ -3,6 +3,7 @@ import { Knex } from 'knex';
 import knex from '../database';
 import { ArtworkModel } from '../model/ArtworkModel';
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug';
+import { PublicationModel } from '../model/PublicationModel';
 
 //* Publications can be created/updated/deleted without actually being published in any platform
 //* There'll be a separate "publish" action for that later
@@ -121,15 +122,12 @@ export default class PublicationController {
   static async get(req: Request, res: Response, next: NextFunction) {
     try {
       const results = await knex('publications').select('*');
-      res.status(200).json(results.map(pub => { return {
-        id: pub.id,
-        slug: makeNumberedSlug(pub.slug_text, pub.slug_num),
-        userId: pub.user_id,
-        title: pub.title,
-        text: pub.text,
-        createdAt: pub.created_at,
-        updatedAt: pub.updated_at,
-      }}));
+      res.status(200).json(results.map(row => {
+        const pub: any = PublicationModel.fromRow(row);
+        pub.createdAt = pub.createdAt.toISOString();
+        pub.updatedAt = pub.updatedAt.toISOString();
+        return pub;
+      }));
     } catch(err) {
       next(err);
     }

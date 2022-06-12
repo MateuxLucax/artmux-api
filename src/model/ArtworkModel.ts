@@ -2,6 +2,7 @@ import { artworkImgEndpoint } from "../utils/artworkImg";
 import { makeNumberedSlug, parseNumberedSlug } from "../utils/slug";
 import { Knex } from 'knex';
 import { Filter, addFilters } from "../utils/queryFilters";
+import { Publication, PublicationModel } from "./PublicationModel";
 
 export type Tag = {
   id?: number,
@@ -20,7 +21,8 @@ export type Artwork = {
   },
   createdAt: Date,
   updatedAt: Date,
-  tags?: Tag[]
+  tags?: Tag[],
+  publications?: Publication[]
 };
 
 export type SearchParams = {
@@ -34,7 +36,7 @@ export type SearchParams = {
 
 export class ArtworkModel {
 
-  private static fromRow(row: any): Artwork {
+  static fromRow(row: any): Artwork {
     return {
       id: row.id,
       slug: makeNumberedSlug(row.slug, row.slug_num),
@@ -80,6 +82,16 @@ export class ArtworkModel {
       .select('t.id', 't.name');
     const rows = await query;
     artwork.tags = rows;
+  }
+
+  static async adjoinPublications(knex: Knex, artwork: Artwork): Promise<void> {
+    const query =
+      knex({pa: 'publication_has_artworks'})
+      .join({p: 'publications'}, 'p.id', 'pa.publication_id')
+      .where('pa.artwork_id', artwork.id)
+      .select('p.*');
+    const rows = await query;
+    artwork.publications = rows.map(PublicationModel.fromRow);
   }
 
   static async search(knex: Knex, params: SearchParams): Promise<{ artworks: Artwork[], total: number }> {

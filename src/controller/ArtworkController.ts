@@ -253,9 +253,13 @@ export default class ArtworkController {
   }
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
+    const alsoWith = (req.query.with as string ?? '').split(',');
     const artwork = await ArtworkModel.findBySlug(knex, req.user.id, req.params.slug)
     if (artwork != null) {
       await ArtworkModel.adjoinTags(knex, artwork);
+      if (alsoWith.includes('publications')) {
+        await ArtworkModel.adjoinPublications(knex, artwork);
+      }
       res.status(200).json(artwork);
     } else {
       next({ statusCode: 404, errorMessage: `No artwork found matching user ${req.user.id}, slug ${req.params.slug}`});
