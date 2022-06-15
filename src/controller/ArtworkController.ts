@@ -6,6 +6,7 @@ import { Knex } from 'knex'
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug'
 import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, getArtworkImgPaths, artworkImgEndpoint } from '../utils/artworkImg'
 import { ArtworkModel } from '../model/ArtworkModel'
+import { SearchParams, validateSearchParams } from '../utils/search'
 
 
 //* We could refactor the controller and the model further so
@@ -211,39 +212,12 @@ export default class ArtworkController {
   }
 
   static async get(req: Request, res: Response, next: NextFunction) {
-
-    const order = req.query.order as string
-    const direction = req.query.direction as string
-    const page = Number(req.query.page)
-    const perPage = Number(req.query.perPage)
-
-    let filters = [];
-    try {
-      const filterArray = [req.query.filters ?? []].flat() as string[];
-      filters = filterArray.map(x => JSON.parse(x));
-    } catch(err) {
-      next({ statusCode: 400, errorMessage: 'Malformed filters, could not parse as JSON' });
+    const validation = validateSearchParams(req, ['created_at', 'updated_at', 'title']);
+    if (typeof validation == 'string') {
+      next({ statusCode: 400, errorMessage: validation as string });
+      return;
     }
-
-    if (page <= 0) next({ statusCode: 400, errorMessage: 'Page must be non-negative' });
-    if (perPage <= 0) next({ statusCode: 400, errorMessage: 'Works per page must be non-negative' });
-    
-    const orderSupportedFields = ['created_at', 'updated_at', 'title'];
-    if (!orderSupportedFields.includes(order)) next({
-      statusCode: 400,
-      errorMessage: `'order' must have one of these values: ${orderSupportedFields.join(', ')}`
-    });
-
-    if (direction != 'asc' && direction != 'desc') next({
-      statusCode: 400,
-      errorMessage: `'direction' must be 'asc' or 'desc'`
-    });
-
-    const params = {
-      userid: req.user.id,
-      page, perPage, order, direction, filters
-    };
-
+    const params = validation as SearchParams;
     try {
       const { total, artworks } = await ArtworkModel.search(knex, params);
       res.status(200).json({ total, artworks })

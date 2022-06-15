@@ -1,7 +1,7 @@
 import { artworkImgEndpoint } from "../utils/artworkImg";
 import { makeNumberedSlug, parseNumberedSlug } from "../utils/slug";
 import { Knex } from 'knex';
-import { Filter, addFilters } from "../utils/queryFilters";
+import { SearchParams, addFilters } from "../utils/search";
 import { Publication, PublicationModel } from "./PublicationModel";
 
 export type Tag = {
@@ -24,15 +24,6 @@ export type Artwork = {
   tags?: Tag[],
   publications?: Publication[]
 };
-
-export type SearchParams = {
-  userid: number,
-  page: number,
-  perPage: number,
-  order: string,
-  direction: string,
-  filters: Filter[]
-}
 
 export class ArtworkModel {
 

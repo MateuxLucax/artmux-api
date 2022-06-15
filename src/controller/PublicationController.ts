@@ -4,6 +4,7 @@ import knex from '../database';
 import { ArtworkModel } from '../model/ArtworkModel';
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug';
 import { PublicationModel } from '../model/PublicationModel';
+import { validateSearchParams, addFilters, SearchParams } from "../utils/search";
 
 //* Publications can be created/updated/deleted without actually being published in any platform
 //* There'll be a separate "publish" action for that later
@@ -120,14 +121,35 @@ export default class PublicationController {
   }
 
   static async get(req: Request, res: Response, next: NextFunction) {
+
+    const validation = validateSearchParams(req, ['created_at', 'updated_at', 'title', 'text']);
+    if (typeof validation == 'string') {
+      next({ statusCode: 400, errorMessage: validation as string });
+      return;
+    }
+    const params = validation as SearchParams;
+
     try {
-      const results = await knex('publications').select('*');
-      res.status(200).json(results.map(row => {
+      const query =
+        knex('publications')
+        .select('*', knex.raw('COUNT(*) OVER() as total'))
+        .limit(params.perPage)
+        .offset((params.page - 1) * params.perPage)
+        .orderBy([{ column: params.order, order: params.direction }]);
+      try {
+        addFilters(query, params.filters);
+      } catch (msg) {
+        throw { statusCode: 400, errorMessage: msg }
+      }
+      const rows = await query;
+      const publications = rows.map(row => {
         const pub: any = PublicationModel.fromRow(row);
         pub.createdAt = pub.createdAt.toISOString();
         pub.updatedAt = pub.updatedAt.toISOString();
         return pub;
-      }));
+      });
+      const total = rows.length > 0 ? rows[0].total : 0;
+      res.status(200).json({ publications, total });
     } catch(err) {
       next(err);
     }
