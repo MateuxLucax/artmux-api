@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     hostname: artmux-api
     image: artmux-api-dev:latest
+    command: sh -c "npm run knex:migrate:latest && npm run dev"
     build:
       context: .
       dockerfile: ./docker/Dockerfile
