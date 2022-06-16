@@ -11,13 +11,13 @@ export async function up(knex: Knex): Promise<void> {
       .onUpdate('cascade');
   })
   .createTable('artwork_has_tags', table => {
-    table.uuid('artwork_uuid').references('artworks.uuid')
+    table.bigint('artwork_id').references('artworks.id')
       .onDelete('cascade')
       .onUpdate('cascade');
     table.bigInteger('tag_id').references('tags.id')
       .onDelete('cascade')
       .onUpdate('cascade');
-    table.primary([ 'artwork_uuid', 'tag_id' ]);
+    table.primary([ 'artwork_id', 'tag_id' ]);
   });
 }
 
@@ -27,4 +27,3 @@ export async function down(knex: Knex): Promise<void> {
   .dropTable('artwork_has_tags')
   .dropTable('tags');
 }
-
