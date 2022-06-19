@@ -304,6 +304,9 @@ async function untagArtwork(knex: Knex, artworkID: number) {
 }
 
 async function tagArtwork(knex: Knex, userID: number, artworkID: number, tags: Tag[]) {
+  if (tags.length == 0) {
+    return;
+  }
   const tagIds = await Promise.all(tags.map(tag => {
     if ('id' in tag) return tag.id;
     return knex.into('tags')

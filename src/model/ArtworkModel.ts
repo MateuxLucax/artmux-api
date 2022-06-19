@@ -1,7 +1,8 @@
 import { artworkImgEndpoint } from "../utils/artworkImg";
 import { makeNumberedSlug, parseNumberedSlug } from "../utils/slug";
 import { Knex } from 'knex';
-import { SearchParams, addFilters } from "../utils/search";
+import knex from '../database';
+import { SearchParams, addFilters, FilterApplier } from "../utils/search";
 import { Publication, PublicationModel } from "./PublicationModel";
 
 export type Tag = {
@@ -93,7 +94,7 @@ export class ArtworkModel {
       .orderBy([{ column: params.order, order: params.direction }])
       .limit(params.perPage)
       .offset((params.page - 1) * params.perPage);
-    addFilters(query, params.filters);
+    addFilters(query, params.filters, artworkOperatorTable);
     const rows = await query;
     const total = rows.length > 0 ? rows[0].total : 0;
     const artworks = rows.map(this.fromRow);
@@ -101,3 +102,22 @@ export class ArtworkModel {
   }
 
 }
+
+const artworkOperatorTable = new Map<string, FilterApplier>();
+
+artworkOperatorTable.set('tagsAnyOf', (qry, col, val) => {
+  qry.orWhereExists(function() {
+    this.select('tag_id')
+        .from('artwork_has_tags')
+        .whereIn('tag_id', val)
+        .andWhereRaw('artwork_id = artworks.id');
+  })
+});
+
+artworkOperatorTable.set('tagsAllOf', (qry, col, val) => {
+  qry.orWhereRaw(`NOT EXISTS(
+    SELECT * FROM (VALUES ${val.map((t:number) => '(' + t + ')').join(',')}) T
+    EXCEPT
+    SELECT tag_id FROM artwork_has_tags WHERE artwork_id = artworks.id
+  )`);
+});

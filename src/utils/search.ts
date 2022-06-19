@@ -17,37 +17,38 @@ export type SearchParams = {
   filters: Filter[]
 };
 
-const operatorNameToSymbol = new Map();
+export type FilterApplier = (qry: Knex.QueryBuilder, col: string, val: any) => void;
+export type OperatorTable = Map<string, FilterApplier>;
+
+const stdOptable = new Map<string, FilterApplier>();
+
+stdOptable.set('between', (qry, col, val) => qry.orWhereBetween(col, val));
+stdOptable.set('contains', (qry, col, val) => qry.orWhereILike(col, '%' + val + '%'));
+stdOptable.set('startsWith', (qry, col, val) => qry.orWhereILike(col, val + '%'));
+stdOptable.set('endsWith', (qry, col, val) => qry.orWhereILike(col, '%' + val));
+
 [ ['equalTo', '='],
   ['different', '!='],
   ['lesser', '<'],
   ['lesserOrEqual', '<='],
   ['greater', '>'],
   ['greaterOrEqual', '>='] ]
-.forEach(([k, v]) => operatorNameToSymbol.set(k, v));
+.forEach(([op, sym]) => stdOptable.set(op, (qry, col, val) => qry.orWhere(col, sym, val)));
 
 // Read 'or' as a verb; a more verbose equivalent name would be 'combineFiltersWithOr'
-function orFilters(query: Knex.QueryBuilder, filters: Filter[]) {
+function orFilters(query: Knex.QueryBuilder, filters: Filter[], extraOptable?: OperatorTable) {
   for (const filter of filters) {
-    const name = filter.name;
-    const op   = filter.operator;
-    const val  = filter.value;
-    if (op == 'between') {
-      query.orWhereBetween(name, val);
-    } else if (op == 'contains' || op == 'startsWith' || op == 'endsWith') {
-      let x = val;
-      if (op == 'contains' || op == 'startsWith') x = x + '%';
-      if (op == 'contains' || op == 'endsWith')   x = '%' + x;
-      query.orWhereILike(name, x);
-    } else if (operatorNameToSymbol.has(op)) {
-      query.orWhere(name, operatorNameToSymbol.get(op), val);
+    if (stdOptable.has(filter.operator)) {
+      (stdOptable.get(filter.operator) as FilterApplier)(query, filter.name, filter.value);
+    } else if (extraOptable?.has(filter.operator)) {
+      (extraOptable.get(filter.operator) as FilterApplier)(query, filter.name, filter.value);
     } else {
-      throw `Unsupported filter.operator ${op}`;
+      throw `Unsupported filter operator ${filter.operator}`;
     }
   }
 }
 
-export function addFilters(query: Knex.QueryBuilder, filters: Filter[]) {
+export function addFilters(query: Knex.QueryBuilder, filters: Filter[], extraOptable?: OperatorTable) {
   // Filters on the same field are combined with OR
   const byField = new Map();
   for (const filter of filters) {
@@ -58,7 +59,7 @@ export function addFilters(query: Knex.QueryBuilder, filters: Filter[]) {
     }
   }
   for (const filters of byField.values()) {
-    query.andWhere(function() { orFilters(this, filters) });
+    query.andWhere(function() { orFilters(this, filters, extraOptable) });
   }
 }
 
@@ -77,7 +78,7 @@ export function validateSearchParams(req: Request, orderSupportedFields: string[
   }
 
   if (page <= 0) throw 'Page must be non-negative';
-  if (perPage <= 0) throw 'Works per page must be non-negative';
+  if (perPage <= 0) throw 'Results per page must be non-negative';
 
   if (!orderSupportedFields.includes(order)) {
     return `'order' must have one of these values: ${orderSupportedFields.join(', ')}`
