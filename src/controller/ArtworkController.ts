@@ -8,7 +8,6 @@ import { makeArtworkImgPaths, ARTWORK_IMG_DIRECTORY, ArtworkImageTransaction, ge
 import { ArtworkModel } from '../model/ArtworkModel'
 import { SearchParams, validateSearchParams } from '../utils/search'
 
-
 //* We could refactor the controller and the model further so
 //* the controller never interacts directly with the database,
 //* but always indirectly using the model.

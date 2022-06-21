@@ -1,6 +1,6 @@
 import express from "express"
 import UserController from "../controller/UserController"
-import { authMiddleware } from "../middlewares/authMiddleware"
+import { authMiddleware } from "../middleware/authMiddleware"
 
 const controller = new UserController()
 

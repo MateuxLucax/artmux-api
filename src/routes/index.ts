@@ -5,7 +5,7 @@ import users from "./users"
 import artworks from "./artworks"
 import publications from "./publications";
 import tags from "./tags";
-import { errorMidleware } from "../middlewares/errorMiddleware"
+import { errorMiddleware } from "../middleware/errorMiddleware"
 
 const router = Router()
 
@@ -26,6 +26,6 @@ router.use((req, res) => {
   res.status(404).json({ error: "Not found" })
 })
 
-router.use(errorMidleware)
+router.use(errorMiddleware)
 
 export default router

@@ -15,13 +15,13 @@ export interface IUser {
 export class UserModel {
 
   static columns = {
-    id: 'id',
-    username: 'username',
-    email: 'email',
-    password: 'password',
-    salt: 'salt',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    id: "id",
+    username: "username",
+    email: "email",
+    password: "password",
+    salt: "salt",
+    createdAt: "created_at",
+    updatedAt: "updated_at",
   }
 
   static table = "users"
@@ -39,7 +39,7 @@ export class UserModel {
   }
 
   static async create(username: string, email: string, password: string, salt: string): Promise<number[]> {
-    return await knex.table(this.table).insert({ username, email, password, salt }).into(this.table).returning('id')
+    return await knex.table(this.table).insert({ username, email, password, salt }).into(this.table).returning(this.columns.id)
   }
 
   static async hashPassword(password: string, username: string) {

@@ -25,7 +25,7 @@ export default class AuthController {
 
     const createdUser = await UserModel.create(username, email, hashedPassword, salt)
 
-    return response.json(createdUser[0])
+    return response.status(201).json(createdUser[0])
   }
 
   async signin(request: Request, response: Response) {
