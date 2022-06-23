@@ -271,7 +271,6 @@ export default class ArtworkController {
 
 }
 
-
 // TODO delete at some point
 function knexArtworkBySlug(knex: Knex, userid: number, slug: string, slugnum: number) {
   return knex('artworks')
@@ -279,7 +278,6 @@ function knexArtworkBySlug(knex: Knex, userid: number, slug: string, slugnum: nu
     .andWhere('slug', slug)
     .andWhere('slug_num', slugnum)
 }
-
 
 async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
   const currnum = (await
@@ -291,7 +289,6 @@ async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
   )?.num
   return 1 + (currnum ? Number(currnum) : 0)
 }
-
 
 type Tag = {
   name: string,

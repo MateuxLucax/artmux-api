@@ -1,5 +1,5 @@
 import { makeNumberedSlug } from '../utils/slug';
-import { Artwork } from './ArtworkModel';
+import { Artwork, ArtworkModel } from './ArtworkModel';
 
 export type Publication = {
   id: number,
@@ -19,6 +19,7 @@ export class PublicationModel {
       title: row.title,
       text: row.text,
       slug: makeNumberedSlug(row.slug_text, row.slug_num),
+      artworks: row.artworks ? row.artworks.map((artwork: any) => ArtworkModel.fromRow(artwork)) : [], 
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
     };

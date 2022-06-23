@@ -1,10 +1,10 @@
 database/
 !src/database/
-artworkimg/*
-!artworkimg/.gitkeep
-!artworkimg/trash
-artworkimg/trash/*
-!artworkimg/trash/.gitkeep
+public/images/*
+!public/images/.gitkeep
+!public/images/trash
+public/images/trash/*
+!public/images/trash/.gitkeep
 dist/
 node_modules/
 yarn.lock

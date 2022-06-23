@@ -4,8 +4,8 @@ import { promisify } from 'util'
 import { promises as fs } from 'fs'
 import { makeNumberedSlug } from './slug'
 
-export const ARTWORK_IMG_DIRECTORY = path.resolve('./artworkimg')
-export const ARTWORK_IMG_TRASH_DIRECTORY = path.resolve('./artworkimg/trash')
+export const ARTWORK_IMG_DIRECTORY = path.resolve('./public/images')
+export const ARTWORK_IMG_TRASH_DIRECTORY = path.resolve('./public/images/trash')
 
 // TODO accepted extensions
 // TODO and also make an endpoint so the front-end can know the accepted extensions

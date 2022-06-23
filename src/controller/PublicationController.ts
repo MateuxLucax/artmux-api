@@ -127,14 +127,25 @@ export default class PublicationController {
       next({ statusCode: 400, errorMessage: validation as string });
       return;
     }
-    const params = validation as SearchParams;
+    let params = validation as SearchParams;
+    // TODO: improve this
+    params.order = `publications.${params.order}`;
+    params.filters.map(filter => `publications.${filter.name}`);
 
+    // TODO: return only the first artwork
     try {
       const query =
         knex('publications')
-        .select('*', knex.raw('COUNT(*) OVER() as total'))
+        .select(
+          'publications.*',
+          knex.raw('JSONB_AGG(artworks.*) AS artworks'),
+          knex.raw('COUNT(publications.id) OVER() AS total')
+        )
+        .join('publication_has_artworks', 'publication_has_artworks.publication_id', '=', 'publications.id')
+        .join('artworks', 'artworks.id', '=', 'publication_has_artworks.artwork_id')
         .limit(params.perPage)
         .offset((params.page - 1) * params.perPage)
+        .groupBy('publications.id')
         .orderBy([{ column: params.order, order: params.direction }]);
       try {
         addFilters(query, params.filters);
