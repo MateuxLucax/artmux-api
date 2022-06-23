@@ -1,14 +1,9 @@
 import { artworkImgEndpoint } from "../utils/artworkImg";
 import { makeNumberedSlug, parseNumberedSlug } from "../utils/slug";
 import { Knex } from 'knex';
-import knex from '../database';
 import { SearchParams, addFilters, FilterApplier } from "../utils/search";
 import { Publication, PublicationModel } from "./PublicationModel";
-
-export type Tag = {
-  id?: number,
-  name: string
-};
+import { Tag, TagModel } from "./TagModel";
 
 export type Artwork = {
   id: number,
@@ -39,8 +34,9 @@ export class ArtworkModel {
         medium: artworkImgEndpoint(row.slug, row.slug_num, 'medium'),
         thumbnail: artworkImgEndpoint(row.slug, row.slug_num, 'thumbnail'),
       },
+      tags: row.tags ? row.tags.map((tag: any) => TagModel.fromRow(tag)) : [], 
       createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
+      updatedAt: new Date(row.updated_at)
     };
   }
 
@@ -87,12 +83,23 @@ export class ArtworkModel {
   }
 
   static async search(knex: Knex, params: SearchParams): Promise<{ artworks: Artwork[], total: number }> {
+    // TODO: improve this
+    params.order = `artworks.${params.order}`;
+    params.filters.map(filter => `artworks.${filter.name}`);
+
     const query =
       knex('artworks')
-      .select('*', knex.raw('COUNT(*) OVER() AS total'))
-      .where('user_id', params.userid)
+      .select(
+        'artworks.*', 
+        knex.raw('COUNT(*) OVER() AS total'),
+        knex.raw('JSONB_AGG(tags.*) AS tags')
+      )
+      .join('artwork_has_tags', 'artwork_has_tags.artwork_id', '=', 'artworks.id')
+      .join('tags', 'tags.id', '=', 'artwork_has_tags.artwork_id')
+      .where('artworks.user_id', params.userid)
       .orderBy([{ column: params.order, order: params.direction }])
       .limit(params.perPage)
+      .groupBy('artworks.id')
       .offset((params.page - 1) * params.perPage);
     addFilters(query, params.filters, artworkOperatorTable);
     const rows = await query;
