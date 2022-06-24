@@ -33,4 +33,25 @@ export class TagModel {
                 .where('tags.user_id', userId))
             .map(this.fromRow);
   }
+
+  static async updateNameById(id: number, name: string, userId: number): Promise<ITag> {
+    const result = await knex('tags')
+                    .update({name})
+                    .where('tags.user_id', userId)
+                    .andWhere('tags.id', id)
+                    .returning('id')
+                    .first();
+
+    return {
+      id: result,
+      name
+    }
+  }
+
+  static async removeById(id: number, userId: number): Promise<boolean> {
+    return await knex('tags')
+            .delete()
+            .where('tags.user_id', userId)
+            .andWhere('tags.id', id) >= 1;
+  }
 }
