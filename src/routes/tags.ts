@@ -1,11 +1,11 @@
 import express from 'express';
-import ArtworkController from '../controller/ArtworkController';
+import TagController from '../controller/TagController';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
 router.use(authMiddleware());
 
-router.get('/', ArtworkController.getAllTags);
+router.get('/', TagController.all);
 
 export default router;

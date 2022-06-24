@@ -3,7 +3,7 @@ import { UserModel } from "../model/UserModel"
 
 export default class UserController {
 
-  async me(request: Request, response: Response) {
+  static async me(request: Request, response: Response) {
     const user = await UserModel.findById(request.user.id)
 
     if (!user) {

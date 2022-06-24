@@ -6,7 +6,7 @@ import { compare } from "bcrypt"
 
 export default class AuthController {
 
-  async signup(request: Request, response: Response) {
+  static async signup(request: Request, response: Response) {
     const { username, password, email } = request.body
 
     if (!username || !password || !email) {
@@ -28,7 +28,7 @@ export default class AuthController {
     return response.status(201).json(createdUser[0])
   }
 
-  async signin(request: Request, response: Response) {
+  static async signin(request: Request, response: Response) {
     const { username, password, keepLoggedIn } = request.body
 
     if (!username || !password) {

@@ -3,7 +3,7 @@ import { makeNumberedSlug, parseNumberedSlug } from "../utils/slug";
 import { Knex } from 'knex';
 import { SearchParams, addFilters, FilterApplier } from "../utils/search";
 import { Publication, PublicationModel } from "./PublicationModel";
-import { Tag, TagModel } from "./TagModel";
+import { ITag, TagModel } from "./TagModel";
 
 export type Artwork = {
   id: number,
@@ -17,7 +17,7 @@ export type Artwork = {
   },
   createdAt: Date,
   updatedAt: Date,
-  tags?: Tag[],
+  tags?: ITag[],
   publications?: Publication[]
 };
 
