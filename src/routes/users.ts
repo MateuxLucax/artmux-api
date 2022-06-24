@@ -7,5 +7,7 @@ const router = express.Router()
 router.use(authMiddleware())
 
 router.get("/me", UserController.me)
+router.patch("/me", UserController.patch)
+router.patch("/me/password", UserController.updatePassword)
 
 export default router

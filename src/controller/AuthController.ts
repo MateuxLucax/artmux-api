@@ -28,7 +28,7 @@ export default class AuthController {
     return response.status(201).json(createdUser[0])
   }
 
-  static async signin(request: Request, response: Response) {
+  static async signIn(request: Request, response: Response) {
     const { username, password, keepLoggedIn } = request.body
 
     if (!username || !password) {

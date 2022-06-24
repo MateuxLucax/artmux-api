@@ -34,8 +34,8 @@ export class UserModel {
     return await knex.table(this.table).select(this.columns.email).where({ email }).first()
   }
 
-  static async findById(id: number): Promise<IUser> {
-    return await knex.table(this.table).select(this.columns.username, this.columns.email).where({ id }).first()
+  static async findById(id: number, allColumns = false): Promise<IUser> {
+    return await knex.table(this.table).select(allColumns ? '*' : this.columns.username, this.columns.email).where({ id }).first()
   }
 
   static async create(username: string, email: string, password: string, salt: string): Promise<number[]> {
@@ -47,5 +47,24 @@ export class UserModel {
     const hashedPassword = await hash(password + username + salt, 16)
 
     return { salt, hashedPassword }
+  }
+
+  // TODO: add updated_at = now()
+  static async updateUsername(userId: number, username: string): Promise<boolean> {
+    return await knex(this.table)
+      .update({ username })
+      .where(this.columns.id, userId) == 1;
+  }
+
+  static async updateEmail(userId: number, email: string): Promise<boolean> {
+    return await knex(this.table)
+      .update({ email })
+      .where(this.columns.id, userId) == 1;
+  }
+
+  static async updatePassword(userId: number, password: string, salt: string): Promise<boolean> {
+    return await knex(this.table)
+      .update({ password, salt })
+      .where(this.columns.id, userId) == 1;
   }
 }
