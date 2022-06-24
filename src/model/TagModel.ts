@@ -34,24 +34,17 @@ export class TagModel {
             .map(this.fromRow);
   }
 
-  static async updateNameById(id: number, name: string, userId: number): Promise<ITag> {
-    const result = await knex('tags')
+  static async updateNameById(id: number, name: string, userId: number): Promise<boolean> {
+    return await knex('tags')
                     .update({name})
                     .where('tags.user_id', userId)
-                    .andWhere('tags.id', id)
-                    .returning('id')
-                    .first();
-
-    return {
-      id: result,
-      name
-    }
+                    .andWhere('tags.id', id) == 1;
   }
 
   static async removeById(id: number, userId: number): Promise<boolean> {
     return await knex('tags')
             .delete()
             .where('tags.user_id', userId)
-            .andWhere('tags.id', id) >= 1;
+            .andWhere('tags.id', id) == 1;
   }
 }

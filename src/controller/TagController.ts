@@ -23,7 +23,9 @@ export default class TagController {
 
       const result = await TagModel.updateNameById(Number(id), name, request.user.id)
 
-      response.status(200).json(result)
+      response.status(200).json({
+        "updated": result
+      })
     } catch (err) {
       next(err);
     }
