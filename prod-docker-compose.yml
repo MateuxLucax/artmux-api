@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     image: artmux-api-prod:latest
     hostname: artmux-api-prod
+    command: sh -c "npm run migrate && npm run start"
     build:
       context: .
       dockerfile: ./docker/prod/Dockerfile
