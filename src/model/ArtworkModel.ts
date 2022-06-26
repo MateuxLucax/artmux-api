@@ -94,8 +94,8 @@ export class ArtworkModel {
         knex.raw('COUNT(*) OVER() AS total'),
         knex.raw('JSONB_AGG(tags.*) AS tags')
       )
-      .join('artwork_has_tags', 'artwork_has_tags.artwork_id', '=', 'artworks.id')
-      .join('tags', 'tags.id', '=', 'artwork_has_tags.artwork_id')
+      .leftJoin('artwork_has_tags', 'artwork_has_tags.artwork_id', '=', 'artworks.id')
+      .leftJoin('tags', 'tags.id', '=', 'artwork_has_tags.artwork_id')
       .where('artworks.user_id', params.userid)
       .orderBy([{ column: params.order, order: params.direction }])
       .limit(params.perPage)
@@ -103,6 +103,11 @@ export class ArtworkModel {
       .offset((params.page - 1) * params.perPage);
     addFilters(query, params.filters, artworkOperatorTable);
     const rows = await query;
+
+    // Remove nulls from left join
+    // TODO is there a better way to do this? Perharps on the SQL itself?
+    rows.forEach(row => row.tags = row.tags.filter((tag: ITag) => tag));
+
     const total = rows.length > 0 ? rows[0].total : 0;
     const artworks = rows.map(this.fromRow);
     return { artworks, total };

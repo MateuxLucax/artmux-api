@@ -240,7 +240,8 @@ export default class ArtworkController {
   }
 
   static async getImage(req: Request, res: Response, next: NextFunction) {
-    const size = req.params.size
+    const { slug, size } = req.params
+
     if (size != 'original' && size != 'medium' && size != 'thumbnail') {
       next({
         statusCode: 400,
@@ -251,7 +252,7 @@ export default class ArtworkController {
     const userId = req.user.id
 
     try {
-      const paths = await getArtworkImgPaths(userId, req.params.slug)
+      const paths = await getArtworkImgPaths(userId, slug)
       const path = paths[size];
       res.sendFile(path)
     } catch(err) {
