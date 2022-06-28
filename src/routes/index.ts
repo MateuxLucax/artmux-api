@@ -3,8 +3,9 @@ import { VERSION } from "../utils/environmentUtil"
 import auth from "./auth"
 import users from "./users"
 import artworks from "./artworks"
-import publications from "./publications";
+import publications from "./publications"
 import tags from "./tags";
+import twitter from "./twitter"
 import { errorMiddleware } from "../middleware/errorMiddleware"
 
 const router = Router()
@@ -13,7 +14,8 @@ router.use("/auth", auth)
 router.use("/users", users)
 router.use("/artworks", artworks)
 router.use("/publications", publications)
-router.use("/tags", tags);
+router.use("/tags", tags)
+router.use("/twitter", twitter)
 
 router.get("/", (_req, res) => {
   res.json({

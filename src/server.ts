@@ -11,8 +11,6 @@ app.use(cors({ origin: CORS_ORIGIN }))
 app.use(morgan("dev"))
 app.use(express.json())
 
-// app.use("/public", express.static(path.join(`${__dirname}/../public`)));
-
 app.use(routes)
 
 app.listen(PORT, () => {
