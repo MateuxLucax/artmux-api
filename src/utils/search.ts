@@ -1,6 +1,5 @@
 import { Request } from 'express';
 import { Knex } from "knex";
-import knex from '../database';
 
 export type Filter = {
   name: string,

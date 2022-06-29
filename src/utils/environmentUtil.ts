@@ -17,6 +17,7 @@ export const DB_PASSWORD = process.env.DB_PASSWORD || "root"
 export const DB_HOST = process.env.DB_HOST || "database"
 
 export const JWT_SECRET = process.env.JWT_SECRET || "secret"
+export const CRYPTO_SECRET = process.env.CRYPTO_SECRET || "secret"
 
 export const TWITTER_API_KEY = process.env.TWITTER_API_KEY || "none"
 export const TWITTER_API_KEY_SECRET = process.env.TWITTER_API_KEY_SECRET || "none"
