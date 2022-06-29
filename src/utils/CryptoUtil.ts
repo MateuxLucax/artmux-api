@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
+import { CipherGCMTypes, createCipheriv, createDecipheriv, randomBytes } from "crypto"
 import { CRYPTO_SECRET } from "./environmentUtil"
 
 export type ICrypto = {
@@ -8,9 +8,9 @@ export type ICrypto = {
 
 export default class CryptoUtil {
 
-  static algorithm = 'aes256'
+  static algorithm: CipherGCMTypes = 'aes-256-gcm'
 
-  static encrypt = (text: string): ICrypto => {
+  static encrypt(text: string): ICrypto {
     const iv = randomBytes(16)
     const cipher = createCipheriv(CryptoUtil.algorithm, CRYPTO_SECRET, iv)
     const encrypted = Buffer.concat([cipher.update(text), cipher.final()])
@@ -21,7 +21,7 @@ export default class CryptoUtil {
     }
   }
 
-  static decrypt = (hash: ICrypto) => {
+  static decrypt(hash: ICrypto) {
     const decipher = createDecipheriv(CryptoUtil.algorithm, CRYPTO_SECRET, Buffer.from(hash.iv, 'hex'))
     const decrypted = Buffer.concat([decipher.update(Buffer.from(hash.content, 'hex')), decipher.final()])
 
