@@ -6,6 +6,10 @@
   "repository": "https://github.com/MateuxLucax/artmux-api",
   "private": false,
   "main": "./src/server.ts",
+  "engines": {
+    "npm": ">=8.0.0",
+    "node": ">=17.0.0"
+  },
   "scripts": {
     "dev": "nodemon -L --watch 'src/' --exec 'ts-node src/server.ts' -e ts",
     "build": "tsc",
