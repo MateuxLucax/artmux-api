@@ -5,7 +5,7 @@ import TwitterState from "../utils/TwitterState"
 
 export const CALLBACK_URL_V1 = "https://api.artmux.gargantua.one/twitter/link/v1/callback"
 export const CALLBACK_URL_V2 = "https://api.artmux.gargantua.one/twitter/link/v2/callback"
-export const ARTMUX_URL = "https://artmux.gargantua.one"
+export const ARTMUX_URL = "https://artmux.gargantua.one/perfil/#accounts"
 
 export default class TwitterController {
 
