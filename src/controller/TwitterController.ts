@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto"
 import { Request, Response } from "express"
 import { TwitterApi } from "twitter-api-v2"
+import AccessModel from "../model/AccessModel"
 import TwitterModel, { TwitterModelAccessData } from "../model/TwitterModel"
 import CryptoUtil from "../utils/CryptoUtil"
 import { TWITTER_API_KEY, TWITTER_API_KEY_SECRET } from "../utils/environmentUtil"
@@ -139,6 +140,19 @@ export default class TwitterController {
       response.json({ tweet, mediaId })
     } catch (_) {
       response.status(500).json({ message: "couldn't make your tweet." })
+    }
+  }
+
+  static async removeAccount(request: Request, response: Response) {
+    try {
+      const { id: accessId } = request.params
+      const userId = request.user.id
+
+      if (await AccessModel.remove(Number(accessId), userId)) {
+        response.json({ message: `Acesso removido com sucesso da nossa base de dados! Clique em "ok!" para ser direcionado a sua página com aplicativos conectados e revogar o acesso do artmux também.`, redirect: "https://twitter.com/settings/connected_apps" })  
+      } else throw { message: "Não foi possível remover o acesso." }
+    } catch (e: any) {
+      response.status(400).json({ message: e.message ? e.message : "Não foi possível remover seu acesso." })
     }
   }
 }

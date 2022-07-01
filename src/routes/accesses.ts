@@ -8,5 +8,6 @@ router.use(authMiddleware)
 
 router.get("/all", AccessesController.all)
 router.get("/create/:socialMedia", AccessesController.create)
+router.delete("/:id", AccessesController.remove)
 
 export default router
