@@ -8,11 +8,11 @@ export type ICrypto = {
 
 export default class CryptoUtil {
 
-  static algorithm: CipherGCMTypes = 'aes-256-gcm'
+  static algorithm = 'aes-256-ctr'
 
-  static encrypt(text: string): ICrypto {
+  static encrypt(text: string, key: Buffer): ICrypto {
     const iv = randomBytes(16)
-    const cipher = createCipheriv(CryptoUtil.algorithm, CRYPTO_SECRET, iv)
+    const cipher = createCipheriv(CryptoUtil.algorithm, key, iv)
     const encrypted = Buffer.concat([cipher.update(text), cipher.final()])
 
     return {
@@ -21,10 +21,15 @@ export default class CryptoUtil {
     }
   }
 
-  static decrypt(hash: ICrypto) {
-    const decipher = createDecipheriv(CryptoUtil.algorithm, CRYPTO_SECRET, Buffer.from(hash.iv, 'hex'))
+  static decrypt(hash: ICrypto, key: Buffer) {
+    const decipher = createDecipheriv(CryptoUtil.algorithm, key, Buffer.from(hash.iv, 'hex'))
     const decrypted = Buffer.concat([decipher.update(Buffer.from(hash.content, 'hex')), decipher.final()])
 
     return decrypted.toString()
+  }
+
+  static createKey(salt: string) {
+    const toHash = Buffer.from(salt + CRYPTO_SECRET, 'base64')
+    return Buffer.concat([toHash, toHash]) // 32 bytes long
   }
 }

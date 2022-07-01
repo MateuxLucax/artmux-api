@@ -1,10 +1,10 @@
 import express from 'express'
 import ArtworkController from '../controller/ArtworkController'
-import { authMiddleware } from '../middleware/authMiddleware'
+import authMiddleware from '../middleware/authMiddleware'
 
 const router = express.Router()
 
-router.use(authMiddleware());
+router.use(authMiddleware);
 
 router.get('/', ArtworkController.get)
 router.get('/:slug/images/:size', ArtworkController.getImage)

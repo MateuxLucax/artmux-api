@@ -1,10 +1,10 @@
 import express from 'express';
 import PublicationController from '../controller/PublicationController';
-import { authMiddleware } from '../middleware/authMiddleware';
+import authMiddleware from '../middleware/authMiddleware'
 
 const router = express.Router();
 
-router.use(authMiddleware());
+router.use(authMiddleware);
 
 router.post('/', PublicationController.create);
 router.get('/:slug', PublicationController.getBySlug);

@@ -1,6 +1,7 @@
 export type TwitterCodeState = {
   code: string,
-  state: string
+  state: string,
+  user: number
 }
 
 export default class TwitterState {
@@ -19,10 +20,10 @@ export default class TwitterState {
     return result 
   }
 
-  public setCode(state: string, code: string) {
-    this.codeMap.set(state, { state, code })
+  public setCode(data: TwitterCodeState) {
+    this.codeMap.set(data.state, data)
 
-    return this.codeMap.has(state)
+    return this.codeMap.has(data.state)
   }
 
 }
