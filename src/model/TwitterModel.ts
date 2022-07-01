@@ -13,6 +13,17 @@ export default class TwitterModel {
 
   static socialMediaId = 1;
 
+  static userFromData(row: any) {
+    const data = row.data as TwitterModelAccessData
+    const username = CryptoUtil.decrypt(data.user_username, CryptoUtil.createKey(row.salt))
+    return {
+      id: row.id,
+      user: CryptoUtil.decrypt(data.user_id, CryptoUtil.createKey(row.salt)),
+      username,
+      profilePage: `https://twitter.com/${username}`
+    }
+  }
+
   static hashAccess(data: string, key: Buffer) {
     return CryptoUtil.encrypt(data, key)
   }

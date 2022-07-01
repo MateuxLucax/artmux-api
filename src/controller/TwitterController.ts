@@ -48,6 +48,7 @@ export default class TwitterController {
       const { data: me } = await loggedClient.v2.me()
 
       if (await TwitterModel.checkAccessAlreadyExists(user, me.id)) {
+        // TODO: redirecionar para uma pagina de erro no artmux para acessos?
         return response.status(400).json({ message: "Usuário já cadastrado." })
       }
 
