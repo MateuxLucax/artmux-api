@@ -14,5 +14,5 @@ app.use(express.json())
 app.use(routes)
 
 app.listen(PORT, () => {
-    console.log(`Server listening under ${HOSTNAME}:${PORT}`)
+    console.info(`Server listening under ${HOSTNAME}:${PORT}`)
 })

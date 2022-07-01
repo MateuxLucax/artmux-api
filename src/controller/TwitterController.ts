@@ -24,7 +24,7 @@ export default class TwitterController {
 
     TwitterState.Instance.setCode({ state: oauth_token, code: oauth_token_secret, user })
 
-    response.json({ url })
+    return response.json({ url })
   }
  
   static async callbackV1(request: Request, response: Response) {
@@ -73,47 +73,6 @@ export default class TwitterController {
     } catch (_) {
       response.status(403).send("Invalid verifier or access tokens!")
     }
-  }
-
-  static async me(request: Request, response: Response) {
-    try {
-      const { accessToken, accessSecret } = request.body
-
-      const client = new TwitterApi({
-        appKey: TWITTER_API_KEY,
-        appSecret: TWITTER_API_KEY_SECRET,
-        accessToken: accessToken as string,
-        accessSecret: accessSecret as string,
-      })
-
-      const me = await client.v2.me()
-
-      response.json({ me })
-    } catch (_) {
-      response.status(500).json({ message: "couldn't retrieve your info."})
-    }
-  }
-
-  static async accesses(request: Request, response: Response) {
-    try {
-      const user = request.user.id
-
-      let accesses = (await TwitterModel.getAccessesFromUser(user)).map(access => {
-        const key = CryptoUtil.createKey(access.salt as string)
-        let data = access.data as TwitterModelAccessData
-        return {
-          accessSecret: TwitterModel.getAccess(data.accessSecret, key),
-          accessToken: TwitterModel.getAccess(data.accessToken, key),
-          user_id: TwitterModel.getAccess(data.user_id, key),
-          user_name: TwitterModel.getAccess(data.user_name, key),
-          user_username: TwitterModel.getAccess(data.user_username, key),
-        }
-      })
-
-      response.json(accesses)
-    } catch (_) {
-      response.status(500).json({ message: "couldn't retrieve your info." })
-    }  
   }
 
   static async tweet(request: Request, response: Response) {

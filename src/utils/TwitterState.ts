@@ -10,6 +10,8 @@ export default class TwitterState {
 
   private codeMap = new Map()
 
+  // TODO: add setTimeout to clean codeStates running
+
   public static get Instance() {
     return this._instance || (this._instance = new this());
   }
