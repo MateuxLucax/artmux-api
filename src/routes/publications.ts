@@ -12,5 +12,6 @@ router.get("/", PublicationController.get);
 router.patch("/:slug", PublicationController.update);
 router.delete("/:slug", PublicationController.delete);
 router.post("/:id/publish", PublicationController.publish)
+router.get("/:id/published", PublicationController.published)
 
 export default router;

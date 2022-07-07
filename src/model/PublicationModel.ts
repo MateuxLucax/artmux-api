@@ -35,4 +35,10 @@ export class PublicationModel {
       })
   }
 
+  static async publishedAt(publication_id: number) {
+    return await knex.table("publication_in_social_media")
+      .select("*")
+      .where("publication_id", publication_id)
+  }
+
 }

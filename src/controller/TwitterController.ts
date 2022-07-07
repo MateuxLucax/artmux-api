@@ -5,6 +5,7 @@ import AccessModel from "../model/AccessModel"
 import { PublicationModel } from "../model/PublicationModel"
 import TwitterModel, { TwitterModelAccessData } from "../model/TwitterModel"
 import { CreateAccountFromSocialMedia, PublishInSocialMedia, RemoveAccountFromSocialMedia } from "../services/SocialMediaService"
+import { getArtworkImgPaths } from "../utils/artworkImg"
 import CryptoUtil from "../utils/CryptoUtil"
 import { TWITTER_API_KEY, TWITTER_API_KEY_SECRET } from "../utils/environmentUtil"
 import TwitterState from "../utils/TwitterState"
@@ -56,6 +57,10 @@ export default class TwitterController implements CreateAccountFromSocialMedia, 
 
       const userId = request.user.id
 
+      const artworks = await Promise.all(media.map(async (slug: string) => {
+        return (await getArtworkImgPaths(userId, slug)).original
+      }))
+
       const { accessToken, accessSecret } = await TwitterModel.getAccessById(accessId, userId)
 
       const client = new TwitterApi({
@@ -66,12 +71,12 @@ export default class TwitterController implements CreateAccountFromSocialMedia, 
       })
 
       const tweet = await client.v2.tweet(description as string)
-      console.log(tweet)
-      if (await PublicationModel.insertPublicationInSocialMedia(Number(publicationId), accessId, TwitterModel.socialMediaId))
+      if (tweet.data.text == description && await PublicationModel.insertPublicationInSocialMedia(Number(publicationId), accessId, TwitterModel.socialMediaId))
         response.json({ message: "Publicação feita com sucesso!" })
       else
         response.status(400).json({ message: "Não foi possível fazer a publicação." })
-    } catch (_) {
+    } catch (e) {
+      console.log(e)
       response.status(500).json({ message: "Algo deu errado ao fazer a publicação." })
     }  
   }
