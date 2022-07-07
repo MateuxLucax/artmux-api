@@ -1,6 +1,6 @@
-import { Request, Response } from "express";
-import AccessModel from "../model/AccessModel";
-import SocialMediaService from "../services/SocialMediaService";
+import { Request, Response } from "express"
+import AccessModel from "../model/AccessModel"
+import SocialMediaService from "../services/SocialMediaService"
 
 export default class AccessesController {
 
@@ -8,7 +8,7 @@ export default class AccessesController {
     try {
       const user = request.user.id
 
-      const accesses = await AccessModel.all(user);
+      const accesses = await AccessModel.all(user)
 
       return response.json(accesses)
     } catch (e) {

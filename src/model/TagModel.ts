@@ -1,11 +1,11 @@
-import knex from "../database";
-import { Artwork, ArtworkModel } from "./ArtworkModel";
+import knex from "../database"
+import { Artwork, ArtworkModel } from "./ArtworkModel"
 
 export type ITag = {
   id?: number,
   name: string,
   artworks?: Artwork[]
-};
+}
 
 export class TagModel {
 
@@ -16,7 +16,7 @@ export class TagModel {
       artworks: row.artworks ? row.artworks.filter((artwork: any) => artwork !== null)
                                            .map((artwork: any) => ArtworkModel.fromRow(artwork)) 
                              : [], 
-    };
+    }
   }
 
   static async findByUser(userId: Number): Promise<ITag[]> {
@@ -44,13 +44,13 @@ export class TagModel {
     return await knex('tags')
                     .update({name})
                     .where('tags.user_id', userId)
-                    .andWhere('tags.id', id) == 1;
+                    .andWhere('tags.id', id) == 1
   }
 
   static async removeById(id: number, userId: number): Promise<boolean> {
     return await knex('tags')
             .delete()
             .where('tags.user_id', userId)
-            .andWhere('tags.id', id) == 1;
+            .andWhere('tags.id', id) == 1
   }
 }

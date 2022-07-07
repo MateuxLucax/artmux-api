@@ -53,18 +53,18 @@ export class UserModel {
   static async updateUsername(userId: number, username: string): Promise<boolean> {
     return await knex(this.table)
       .update({ username })
-      .where(this.columns.id, userId) == 1;
+      .where(this.columns.id, userId) == 1
   }
 
   static async updateEmail(userId: number, email: string): Promise<boolean> {
     return await knex(this.table)
       .update({ email })
-      .where(this.columns.id, userId) == 1;
+      .where(this.columns.id, userId) == 1
   }
 
   static async updatePassword(userId: number, password: string, salt: string): Promise<boolean> {
     return await knex(this.table)
       .update({ password, salt })
-      .where(this.columns.id, userId) == 1;
+      .where(this.columns.id, userId) == 1
   }
 }

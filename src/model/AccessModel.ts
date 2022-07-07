@@ -1,4 +1,4 @@
-import TwitterModel from "./TwitterModel";
+import TwitterModel from "./TwitterModel"
 import knex from "../database"
 
 export default class AccessModel {
@@ -29,7 +29,7 @@ export default class AccessModel {
     return await knex("accesses")
       .where("id", accessId)
       .andWhere("user_id", userId)
-      .delete() >= 1;
+      .delete() >= 1
   }
 
   static async getById(accessId: number, userId: number) {

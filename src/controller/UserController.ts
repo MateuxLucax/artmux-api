@@ -17,7 +17,7 @@ export default class UserController {
   static async patch(request: Request, response: Response, next: NextFunction) {
     try {
       const { username, email } = request.body
-      let updated = {};
+      let updated = {}
 
       if (username) {
         if (await UserModel.findByUsername(username)) {
@@ -46,7 +46,7 @@ export default class UserController {
 
       response.status(200).json(updated)
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 
@@ -59,7 +59,7 @@ export default class UserController {
         return response.status(400).json({ message: "Corpo da requisição inválida!" })
       }
 
-      const user = await UserModel.findById(userId, true);
+      const user = await UserModel.findById(userId, true)
 
       if (!await compare(oldPassword + user.username + user.salt, user.password!)) {
         return response.status(400).json({ message: "Senha atual incorreta!" })
@@ -71,7 +71,7 @@ export default class UserController {
 
       response.status(updated ? 200 : 400).json({ updated })
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 }

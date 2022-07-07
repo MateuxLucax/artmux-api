@@ -1,8 +1,8 @@
 import { DB_NAME, DB_USER, DB_PASSWORD, DB_PORT, DB_CLIENT, DB_HOST } from "../utils/environmentUtil"
 
 interface KnexConfig {
-  [key: string]: object;
-};
+  [key: string]: object
+}
 
 const knexConfig: KnexConfig = {
   development: {
@@ -23,4 +23,4 @@ const knexConfig: KnexConfig = {
   }
 }
 
-export default knexConfig;
+export default knexConfig

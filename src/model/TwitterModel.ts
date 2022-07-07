@@ -1,5 +1,5 @@
 import knex from "../database"
-import CryptoUtil, { ICrypto } from "../utils/CryptoUtil";
+import CryptoUtil, { ICrypto } from "../utils/CryptoUtil"
 
 export type TwitterModelAccessData = {
   accessToken: ICrypto,
@@ -11,7 +11,7 @@ export type TwitterModelAccessData = {
 
 export default class TwitterModel {
 
-  static socialMediaId = 1;
+  static socialMediaId = 1
 
   static userFromData(row: any) {
     const data = row.data as TwitterModelAccessData

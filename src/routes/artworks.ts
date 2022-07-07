@@ -4,7 +4,7 @@ import authMiddleware from '../middleware/authMiddleware'
 
 const router = express.Router()
 
-router.use(authMiddleware);
+router.use(authMiddleware)
 
 router.get('/', ArtworkController.get)
 router.get('/:slug/images/:size', ArtworkController.getImage)

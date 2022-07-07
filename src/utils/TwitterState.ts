@@ -11,7 +11,7 @@ export default class TwitterState {
   private codeMap = new Map()
 
   public static get Instance() {
-    return this._instance || (this._instance = new this());
+    return this._instance || (this._instance = new this())
   }
 
   public getCode(state: string) : TwitterCodeState {

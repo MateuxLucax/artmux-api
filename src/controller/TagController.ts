@@ -1,14 +1,13 @@
 import { Request, Response, NextFunction } from "express"
-import knex from '../database'
-import { TagModel } from "../model/TagModel";
+import { TagModel } from "../model/TagModel"
 
 export default class TagController {
 
   static async all(request: Request, response: Response, next: NextFunction) {
     try {
-      response.status(200).json(await TagModel.findByUser(request.user.id));
+      response.status(200).json(await TagModel.findByUser(request.user.id))
     } catch(err) {
-      next(err);
+      next(err)
     }
   }
 
@@ -27,7 +26,7 @@ export default class TagController {
         "updated": result
       })
     } catch (err) {
-      next(err);
+      next(err)
     }
   }
 
@@ -40,7 +39,7 @@ export default class TagController {
         "deleted": result
       })
     } catch (err) {
-      next(err);
+      next(err)
     }
 
   }

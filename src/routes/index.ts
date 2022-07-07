@@ -4,7 +4,7 @@ import auth from "./auth"
 import users from "./users"
 import artworks from "./artworks"
 import publications from "./publications"
-import tags from "./tags";
+import tags from "./tags"
 import twitter from "./twitter"
 import accesses from "./accesses"
 import { errorMiddleware } from "../middleware/errorMiddleware"

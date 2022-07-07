@@ -1,6 +1,6 @@
 import knex from "../database"
-import { makeNumberedSlug } from '../utils/slug';
-import { Artwork, ArtworkModel } from './ArtworkModel';
+import { makeNumberedSlug } from '../utils/slug'
+import { Artwork, ArtworkModel } from './ArtworkModel'
 
 export type Publication = {
   id: number,
@@ -10,7 +10,7 @@ export type Publication = {
   createdAt: Date,
   updatedAt: Date,
   artworks?: Artwork[]
-};
+}
 
 export class PublicationModel {
 
@@ -23,7 +23,7 @@ export class PublicationModel {
       artworks: row.artworks ? row.artworks.map((artwork: any) => ArtworkModel.fromRow(artwork)) : [], 
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
-    };
+    }
   }
 
   static async insertPublicationInSocialMedia(publication_id: number, access_id: number, social_media_id: number) {

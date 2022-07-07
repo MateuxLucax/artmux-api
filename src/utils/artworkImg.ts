@@ -40,7 +40,7 @@ makeArtworkImgPaths(userId: number, slug: string, ext: string) {
 
 export function
 artworkImgEndpoint(slug: string, slugnum: number, size: string)  {
-  return `artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`;
+  return `artworks/${makeNumberedSlug(slug, slugnum)}/images/${size}`
 }
 
 
@@ -50,8 +50,8 @@ export async function
 getArtworkImgPaths(userid: number, slug: string) {
   const { stdout } = await asyncExec(`ls ${ARTWORK_IMG_DIRECTORY}/${userid}_${slug}_original*`)
   const [, ext] = /.*\.(.*)/.exec(stdout) ?? []
-  if (!ext) throw 'File not found';
-  return makeArtworkImgPaths(userid, slug, ext);
+  if (!ext) throw 'File not found'
+  return makeArtworkImgPaths(userid, slug, ext)
 }
 
 export class ArtworkImageTransaction {
@@ -98,7 +98,7 @@ export class ArtworkImageTransaction {
     await Promise.all(paths.map(path =>
       asyncExec(`mv '${path}' '${ARTWORK_IMG_TRASH_DIRECTORY}'`)
       .then(() => this.trashedPaths.push(path))
-    ));
+    ))
   }
 
   async rename(

@@ -21,9 +21,9 @@ export default class ArtworkController {
       const imgtrx = new ArtworkImageTransaction()
 
       try {
-        if (err) throw err;
+        if (err) throw err
 
-        const missing = [];
+        const missing = []
         if (!fields.hasOwnProperty('title')) missing.push('title')
         if (!files.hasOwnProperty('image')) missing.push('image')
         const images = [files['image']].flat() // files['image'] is a File | File[]
@@ -39,14 +39,14 @@ export default class ArtworkController {
           throw { statusCode: 400, errorMessage: `Missing ${missing.join(', ')}` }
         }
         
-        const userId = req.user.id;
-        const title = fields.title as string;
-        const observations = fields.observations as string;
+        const userId = req.user.id
+        const title = fields.title as string
+        const observations = fields.observations as string
 
-        let tags;
-        const tagsJSON = fields.tags as string;
+        let tags
+        const tagsJSON = fields.tags as string
         try {
-          tags = JSON.parse(tagsJSON);
+          tags = JSON.parse(tagsJSON)
         } catch(err) {
           throw { statusCode: 400, errorMessage: `Malformed tags, could not parse JSON: ${tagsJSON}`}
         }
@@ -76,9 +76,9 @@ export default class ArtworkController {
             img_path_thumbnail: imgPaths.thumbnail,
           })
           .returning('id')
-          .then(([{id}]) => id);
+          .then(([{id}]) => id)
 
-        await tagArtwork(trx, userId, artworkID, tags);
+        await tagArtwork(trx, userId, artworkID, tags)
 
         trx.commit()
         res.status(201).json({ id: artworkID, slug: slugfull })
@@ -102,7 +102,7 @@ export default class ArtworkController {
       const imgtrx = new ArtworkImageTransaction()
 
       try {
-        if (err) throw err;
+        if (err) throw err
 
         if (!fields.hasOwnProperty('title')) { // Only required field
           throw { statusCode: 400, errorMessage: 'Missing title'}
@@ -111,24 +111,24 @@ export default class ArtworkController {
         const observations = fields['observations'] as string
         const images = [files['image']].flat()
 
-        const tagsJSON = fields['tags'] as string;
-        let tags;
+        const tagsJSON = fields['tags'] as string
+        let tags
         try {
-          tags = JSON.parse(tagsJSON);
+          tags = JSON.parse(tagsJSON)
         } catch(err) {
-          throw { statusCode: 400, errorMessage: `Malformed tags, could not parse JSON: ${tags}` };
+          throw { statusCode: 400, errorMessage: `Malformed tags, could not parse JSON: ${tags}` }
         }
 
         const oldwork = await
           knexArtworkBySlug(trx, userid, oldslug, oldslugnum)
           .select('id', 'title', 'img_path_original', 'img_path_medium', 'img_path_thumbnail')
-          .first();
+          .first()
 
-        const id = oldwork.id;
+        const id = oldwork.id
 
         const newslug = makeSlug(title)
-        const slugChanged = oldslug != newslug;
-        const newslugnum = slugChanged ? await nextArtworkSlugnum(trx, userid, newslug) : oldslugnum;
+        const slugChanged = oldslug != newslug
+        const newslugnum = slugChanged ? await nextArtworkSlugnum(trx, userid, newslug) : oldslugnum
         const newslugfull = makeNumberedSlug(newslug, newslugnum)
 
         const updateObject = {
@@ -175,9 +175,9 @@ export default class ArtworkController {
           })
         }
 
-        await trx('artworks').where('id', id).update(updateObject);
-        await untagArtwork(trx, id);  // remove old tags
-        await tagArtwork(trx, userid, id, tags);  // add new tags
+        await trx('artworks').where('id', id).update(updateObject)
+        await untagArtwork(trx, id)  // remove old tags
+        await tagArtwork(trx, userid, id, tags)  // add new tags
 
         trx.commit()
         res.status(200).json({ slug: newslugfull })
@@ -197,10 +197,10 @@ export default class ArtworkController {
     const trx = await knex.transaction()
     const imgtrx = new ArtworkImageTransaction()
     try {
-      await knexArtworkBySlug(trx, userid, slug, slugnum).delete();
+      await knexArtworkBySlug(trx, userid, slug, slugnum).delete()
       await getArtworkImgPaths(userid, slugfull)
         .then(paths => imgtrx.delete(Object.values(paths)))
-        .catch(console.error);  // If the paths don't exist, fine
+        .catch(console.error)  // If the paths don't exist, fine
       trx.commit()
       res.status(204).end()
     } catch(err) {
@@ -211,31 +211,31 @@ export default class ArtworkController {
   }
 
   static async get(req: Request, res: Response, next: NextFunction) {
-    const validation = validateSearchParams(req, ['created_at', 'updated_at', 'title']);
+    const validation = validateSearchParams(req, ['created_at', 'updated_at', 'title'])
     if (typeof validation == 'string') {
-      next({ statusCode: 400, errorMessage: validation as string });
-      return;
+      next({ statusCode: 400, errorMessage: validation as string })
+      return
     }
-    const params = validation as SearchParams;
+    const params = validation as SearchParams
     try {
-      const { total, artworks } = await ArtworkModel.search(knex, params);
+      const { total, artworks } = await ArtworkModel.search(knex, params)
       res.status(200).json({ total, artworks })
     } catch(err) {
-      next(err);
+      next(err)
     }
   }
 
   static async getBySlug(req: Request, res: Response, next: NextFunction) {
-    const alsoWith = (req.query.with as string ?? '').split(',');
+    const alsoWith = (req.query.with as string ?? '').split(',')
     const artwork = await ArtworkModel.findBySlug(knex, req.user.id, req.params.slug)
     if (artwork != null) {
-      await ArtworkModel.adjoinTags(knex, artwork);
+      await ArtworkModel.adjoinTags(knex, artwork)
       if (alsoWith.includes('publications')) {
-        await ArtworkModel.adjoinPublications(knex, artwork);
+        await ArtworkModel.adjoinPublications(knex, artwork)
       }
-      res.status(200).json(artwork);
+      res.status(200).json(artwork)
     } else {
-      next({ statusCode: 404, errorMessage: `No artwork found matching user ${req.user.id}, slug ${req.params.slug}`});
+      next({ statusCode: 404, errorMessage: `No artwork found matching user ${req.user.id}, slug ${req.params.slug}`})
     }
   }
 
@@ -253,7 +253,7 @@ export default class ArtworkController {
 
     try {
       const paths = await getArtworkImgPaths(userId, slug)
-      const path = paths[size];
+      const path = paths[size]
       res.sendFile(path)
     } catch(err) {
       next({ statusCode: 404, errorMessage: 'Image does not exist' })
@@ -283,23 +283,23 @@ async function nextArtworkSlugnum(knex: Knex, userId: number, slug: string) {
 type Tag = {
   name: string,
   id?: number
-};
+}
 
 async function untagArtwork(knex: Knex, artworkID: number) {
-  await knex('artwork_has_tags').where('artwork_id', artworkID).delete();
+  await knex('artwork_has_tags').where('artwork_id', artworkID).delete()
 }
 
 async function tagArtwork(knex: Knex, userID: number, artworkID: number, tags: Tag[]) {
   if (tags.length == 0) {
-    return;
+    return
   }
   const tagIds = await Promise.all(tags.map(tag => {
-    if ('id' in tag) return tag.id;
+    if ('id' in tag) return tag.id
     return knex.into('tags')
                .insert({ user_id: userID, name: tag.name })
                .returning('id')
                .then(([{id}]) => id)
-  }));
+  }))
   await knex.into('artwork_has_tags')
-            .insert(tagIds.map(id => { return { artwork_id: artworkID, tag_id: id }; }));
+            .insert(tagIds.map(id => { return { artwork_id: artworkID, tag_id: id } }))
 }
