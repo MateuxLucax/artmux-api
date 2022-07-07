@@ -2,7 +2,9 @@ import { randomBytes } from "crypto"
 import { Request, Response } from "express"
 import { TwitterApi } from "twitter-api-v2"
 import AccessModel from "../model/AccessModel"
+import { PublicationModel } from "../model/PublicationModel"
 import TwitterModel, { TwitterModelAccessData } from "../model/TwitterModel"
+import { CreateAccountFromSocialMedia, PublishInSocialMedia, RemoveAccountFromSocialMedia } from "../services/SocialMediaService"
 import CryptoUtil from "../utils/CryptoUtil"
 import { TWITTER_API_KEY, TWITTER_API_KEY_SECRET } from "../utils/environmentUtil"
 import TwitterState from "../utils/TwitterState"
@@ -10,30 +12,77 @@ import TwitterState from "../utils/TwitterState"
 export const CALLBACK_URL_V1 = "https://api.artmux.gargantua.one/twitter/link/v1/callback"
 export const ARTMUX_URL = "https://artmux.gargantua.one/perfil/#accounts"
 
-export default class TwitterController {
+export default class TwitterController implements CreateAccountFromSocialMedia, RemoveAccountFromSocialMedia, PublishInSocialMedia {
 
-  static async generateLinkV1(request: Request, response: Response) {
-    const client = new TwitterApi({
-      appKey: TWITTER_API_KEY,
-      appSecret: TWITTER_API_KEY_SECRET
-    })
+  async createAccount(request: Request, response: Response): Promise<void> {
+    try {
+      const client = new TwitterApi({
+        appKey: TWITTER_API_KEY,
+        appSecret: TWITTER_API_KEY_SECRET
+      })
 
-    const user = request.user.id
+      const { url, oauth_token, oauth_token_secret } = await client.generateAuthLink(CALLBACK_URL_V1, { linkMode: "authorize" })
 
-    const { url, oauth_token, oauth_token_secret } = await client.generateAuthLink(CALLBACK_URL_V1, { linkMode: "authorize" })
+      TwitterState.Instance.setCode({ state: oauth_token, code: oauth_token_secret, user: request.user.id })
 
-    TwitterState.Instance.setCode({ state: oauth_token, code: oauth_token_secret, user })
-
-    return response.json({ url })
+      response.json({ redirect: url })
+    } catch (_) {
+      response.status(400).json({ message: "Não foi possível realizar o cadastro da sua conta." })
+    }
   }
- 
-  static async callbackV1(request: Request, response: Response) {
+
+  async removeAccount(request: Request, response: Response): Promise<void> {
+    try {
+      const { id: accessId } = request.params
+      const userId = request.user.id
+
+      if (await AccessModel.remove(Number(accessId), userId)) {
+        response.json({
+          message: `Acesso removido com sucesso da nossa base de dados! Clique em "ok!" para ser direcionado a sua página com aplicativos conectados e revogar o acesso do artmux também.`,
+          redirect: "https://twitter.com/settings/connected_apps"
+        })
+      } else {
+        response.status(400).json({ message: "Não foi possível remover o seu acesso." })
+      }
+    } catch (_) {
+      response.status(400).json({ message: "Algo deu errado ao remover o seu acesso." })
+    }
+  }
+
+  async publish(request: Request, response: Response): Promise<void> {
+    try {
+      const { accessId, description, media } = request.body
+      const { id: publicationId } = request.params
+
+      const userId = request.user.id
+
+      const { accessToken, accessSecret } = await TwitterModel.getAccessById(accessId, userId)
+
+      const client = new TwitterApi({
+        appKey: TWITTER_API_KEY,
+        appSecret: TWITTER_API_KEY_SECRET,
+        accessToken: accessToken as string,
+        accessSecret: accessSecret as string,
+      })
+
+      const tweet = await client.v2.tweet(description as string)
+      console.log(tweet)
+      if (await PublicationModel.insertPublicationInSocialMedia(Number(publicationId), accessId, TwitterModel.socialMediaId))
+        response.json({ message: "Publicação feita com sucesso!" })
+      else
+        response.status(400).json({ message: "Não foi possível fazer a publicação." })
+    } catch (_) {
+      response.status(500).json({ message: "Algo deu errado ao fazer a publicação." })
+    }  
+  }
+
+  async callbackV1(request: Request, response: Response) {
     try {
       const { oauth_token, oauth_verifier } = request.query
 
       const { code: oauth_token_secret, user } = TwitterState.Instance.getCode(oauth_token as string)
 
-      if (!oauth_token || !oauth_verifier || !oauth_token_secret) {
+      if (!oauth_token || !oauth_verifier || !oauth_token_secret || !user) {
         return response.status(400).json({ message: "You denied the app or your session expired!" })
       }
 
@@ -49,7 +98,6 @@ export default class TwitterController {
       const { data: me } = await loggedClient.v2.me()
 
       if (await TwitterModel.checkAccessAlreadyExists(user, me.id)) {
-        // TODO: redirecionar para uma pagina de erro no artmux para acessos?
         return response.status(400).json({ message: "Usuário já cadastrado." })
       }
 
@@ -75,43 +123,4 @@ export default class TwitterController {
     }
   }
 
-  static async tweet(request: Request, response: Response) {
-    try {
-      const { accessToken, accessSecret } = request.body
-
-      const client = new TwitterApi({
-        appKey: TWITTER_API_KEY,
-        appSecret: TWITTER_API_KEY_SECRET,
-        accessToken: accessToken as string,
-        accessSecret: accessSecret as string,
-      })
-
-      // TODO: wait for v1 access on twitter dev dashboard
-      // const mediaId = await client.v1.uploadMedia(`${ARTWORK_IMG_DIRECTORY}/${imagem}`)
-      const mediaId = ""
-
-      const tweet = await client.v2.tweet("hack", {
-        media: {
-          media_ids: [mediaId]
-        },
-      })
-
-      response.json({ tweet, mediaId })
-    } catch (_) {
-      response.status(500).json({ message: "couldn't make your tweet." })
-    }
-  }
-
-  static async removeAccount(request: Request, response: Response) {
-    try {
-      const { id: accessId } = request.params
-      const userId = request.user.id
-
-      if (await AccessModel.remove(Number(accessId), userId)) {
-        response.json({ message: `Acesso removido com sucesso da nossa base de dados! Clique em "ok!" para ser direcionado a sua página com aplicativos conectados e revogar o acesso do artmux também.`, redirect: "https://twitter.com/settings/connected_apps" })  
-      } else throw { message: "Não foi possível remover o acesso." }
-    } catch (e: any) {
-      response.status(400).json({ message: e.message ? e.message : "Não foi possível remover seu acesso." })
-    }
-  }
 }

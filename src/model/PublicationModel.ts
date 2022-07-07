@@ -1,3 +1,4 @@
+import knex from "../database"
 import { makeNumberedSlug } from '../utils/slug';
 import { Artwork, ArtworkModel } from './ArtworkModel';
 
@@ -23,6 +24,15 @@ export class PublicationModel {
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
     };
+  }
+
+  static async insertPublicationInSocialMedia(publication_id: number, access_id: number, social_media_id: number) {
+    return await knex.table("publication_in_social_media")
+      .insert({
+        publication_id,
+        access_id,
+        social_media_id
+      })
   }
 
 }

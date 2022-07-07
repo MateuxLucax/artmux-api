@@ -1,4 +1,4 @@
-import { CipherGCMTypes, createCipheriv, createDecipheriv, randomBytes } from "crypto"
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
 import { CRYPTO_SECRET } from "./environmentUtil"
 
 export type ICrypto = {

@@ -5,6 +5,7 @@ import { ArtworkModel } from '../model/ArtworkModel';
 import { makeSlug, makeNumberedSlug, parseNumberedSlug } from '../utils/slug';
 import { PublicationModel } from '../model/PublicationModel';
 import { validateSearchParams, addFilters, SearchParams } from "../utils/search";
+import SocialMediaService from '../services/SocialMediaService';
 
 //* Publications can be created/updated/deleted without actually being published in any platform
 //* There'll be a separate "publish" action for that later
@@ -202,6 +203,19 @@ export default class PublicationController {
       });
     } catch(err) {
       next(err);
+    }
+  }
+
+  static async publish(request: Request, response: Response) {
+    try {
+      const { socialMediaId } = request.body
+
+      const callback = SocialMediaService.publish.get(Number(socialMediaId))
+
+      if (callback) await callback(request, response)
+      else response.status(400).json({ message: "Não foi possível obter a rede social." })
+    } catch (_) {
+      response.status(400).json({ message: "Não foi possível fazer a publicação." })
     }
   }
 

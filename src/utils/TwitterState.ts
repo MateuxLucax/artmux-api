@@ -10,8 +10,6 @@ export default class TwitterState {
 
   private codeMap = new Map()
 
-  // TODO: add setTimeout to clean codeStates running
-
   public static get Instance() {
     return this._instance || (this._instance = new this());
   }
@@ -19,7 +17,7 @@ export default class TwitterState {
   public getCode(state: string) : TwitterCodeState {
     const result = this.codeMap.get(state)
     this.codeMap.delete(state)
-    return result 
+    return result
   }
 
   public setCode(data: TwitterCodeState) {

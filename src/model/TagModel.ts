@@ -20,18 +20,27 @@ export class TagModel {
   }
 
   static async findByUser(userId: Number): Promise<ITag[]> {
-    return (await knex('tags')
+    const tags = await knex('tags')
                 .select(
                   'tags.id',
                   'tags.name',
                   knex.raw('COUNT(*) OVER() AS total'),
-                  knex.raw('JSONB_AGG(artworks.*) AS artworks')  
                 )
-                .leftJoin('artwork_has_tags', 'artwork_has_tags.tag_id', '=', 'tags.id')
-                .leftJoin('artworks', 'artworks.id', '=', 'tags.id')
                 .groupBy('tags.id')
-                .where('tags.user_id', userId))
-            .map(this.fromRow);
+                .where('tags.user_id', userId)
+
+    return await Promise.all(tags.map(async row => {
+      console.log(row)
+
+      row.tags = await knex("artworks")
+        .select("artworks.*")
+        .join("artwork_has_tags", "artwork_has_tags.artwork_id", "=", "artworks.id")
+        .join("tags", "artwork_has_tags.tag_id", "=", "tags.id")
+        .where("artwork_has_tags.tag_id", row.id)
+      console.log(row)
+
+      return this.fromRow(row)
+    }))
   }
 
   static async updateNameById(id: number, name: string, userId: number): Promise<boolean> {

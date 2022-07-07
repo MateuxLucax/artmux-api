@@ -1,9 +1,9 @@
-import { artworkImgEndpoint } from "../utils/artworkImg";
-import { makeNumberedSlug, parseNumberedSlug } from "../utils/slug";
-import { Knex } from 'knex';
-import { SearchParams, addFilters, FilterApplier } from "../utils/search";
-import { Publication, PublicationModel } from "./PublicationModel";
-import { ITag, TagModel } from "./TagModel";
+import { artworkImgEndpoint } from "../utils/artworkImg"
+import { makeNumberedSlug, parseNumberedSlug } from "../utils/slug"
+import { Knex } from 'knex'
+import { SearchParams, addFilters, FilterApplier } from "../utils/search"
+import { Publication, PublicationModel } from "./PublicationModel"
+import { ITag, TagModel } from "./TagModel"
 
 export type Artwork = {
   id: number,
@@ -19,7 +19,7 @@ export type Artwork = {
   updatedAt: Date,
   tags?: ITag[],
   publications?: Publication[]
-};
+}
 
 export class ArtworkModel {
 
@@ -37,29 +37,29 @@ export class ArtworkModel {
       tags: row.tags ? row.tags.map((tag: any) => TagModel.fromRow(tag)) : [], 
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
-    };
+    }
   }
 
   static async findById(knex: Knex, ids: number[]): Promise<Artwork[]> {
     const query =
       knex('artworks')
       .whereIn('id', ids)
-      .select('*');
-    const rows = await query;
-    return rows.map(this.fromRow);
+      .select('*')
+    const rows = await query
+    return rows.map(this.fromRow)
   }
 
   static async findBySlug(knex: Knex, userid: number, slugfull: string): Promise<Artwork | null> {
-    const { slug, slugnum } = parseNumberedSlug(slugfull);
+    const { slug, slugnum } = parseNumberedSlug(slugfull)
     const query =
       knex('artworks')
       .where('user_id', userid)
       .andWhere('slug', slug)
       .andWhere('slug_num', slugnum)
       .select('*')
-      .first();
-    const row = await query;
-    return row == undefined ? null : this.fromRow(row);
+      .first()
+    const row = await query
+    return row == undefined ? null : this.fromRow(row)
   }
 
   static async adjoinTags(knex: Knex, artwork: Artwork): Promise<void> {
@@ -67,9 +67,9 @@ export class ArtworkModel {
       knex({at: 'artwork_has_tags'})
       .join({t: 'tags'}, 't.id', 'at.tag_id')
       .where('at.artwork_id', artwork.id)
-      .select('t.id', 't.name');
-    const rows = await query;
-    artwork.tags = rows;
+      .select('t.id', 't.name')
+    const rows = await query
+    artwork.tags = rows
   }
 
   static async adjoinPublications(knex: Knex, artwork: Artwork): Promise<void> {
@@ -77,59 +77,56 @@ export class ArtworkModel {
       knex({pa: 'publication_has_artworks'})
       .join({p: 'publications'}, 'p.id', 'pa.publication_id')
       .where('pa.artwork_id', artwork.id)
-      .select('p.*');
-    const rows = await query;
-    artwork.publications = rows.map(PublicationModel.fromRow);
+      .select('p.*')
+    const rows = await query
+    artwork.publications = rows.map(PublicationModel.fromRow)
   }
 
   static async search(knex: Knex, params: SearchParams): Promise<{ artworks: Artwork[], total: number }> {
-    // TODO: improve this
-    params.order = `artworks.${params.order}`;
-    params.filters.map(filter => `artworks.${filter.name}`);
-
     const query =
       knex('artworks')
       .select(
         'artworks.*', 
         knex.raw('COUNT(*) OVER() AS total'),
-        knex.raw('JSONB_AGG(tags.*) AS tags')
       )
-      .leftJoin('artwork_has_tags', 'artwork_has_tags.artwork_id', '=', 'artworks.id')
-      .leftJoin('tags', 'tags.id', '=', 'artwork_has_tags.artwork_id')
-      .where('artworks.user_id', params.userid)
+      .where('user_id', params.userid)
       .orderBy([{ column: params.order, order: params.direction }])
       .limit(params.perPage)
-      .groupBy('artworks.id')
-      .offset((params.page - 1) * params.perPage);
-    addFilters(query, params.filters, artworkOperatorTable);
-    const rows = await query;
+      .groupBy('id')
+      .offset((params.page - 1) * params.perPage)
+    addFilters(query, params.filters, artworkOperatorTable)
+    const rows = await query
 
-    // Remove nulls from left join
-    // TODO is there a better way to do this? Perharps on the SQL itself?
-    rows.forEach(row => row.tags = row.tags.filter((tag: ITag) => tag));
+    const total = rows.length > 0 ? rows[0].total : 0
+    // Could be done with nested select, but I am tired
+    const artworks = await Promise.all(rows.map(async row => {
+      row.tags = await knex("tags")
+        .select("tags.*")
+        .join("artwork_has_tags", "artwork_has_tags.tag_id", "=", "tags.id")
+        .where("artwork_has_tags.artwork_id", row.id)
 
-    const total = rows.length > 0 ? rows[0].total : 0;
-    const artworks = rows.map(this.fromRow);
-    return { artworks, total };
+      return this.fromRow(row)
+    }))
+    return { artworks, total }
   }
 
 }
 
-const artworkOperatorTable = new Map<string, FilterApplier>();
+const artworkOperatorTable = new Map<string, FilterApplier>()
 
 artworkOperatorTable.set('tagsAnyOf', (qry, col, val) => {
   qry.orWhereExists(function() {
     this.select('tag_id')
         .from('artwork_has_tags')
         .whereIn('tag_id', val)
-        .andWhereRaw('artwork_id = artworks.id');
+        .andWhereRaw('artwork_id = artworks.id')
   })
-});
+})
 
 artworkOperatorTable.set('tagsAllOf', (qry, col, val) => {
   qry.orWhereRaw(`NOT EXISTS(
     SELECT * FROM (VALUES ${val.map((t:number) => '(' + t + ')').join(',')}) T
     EXCEPT
     SELECT tag_id FROM artwork_has_tags WHERE artwork_id = artworks.id
-  )`);
-});
+  )`)
+})

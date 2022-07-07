@@ -1,15 +1,8 @@
 import { Request, Response } from "express";
 import AccessModel from "../model/AccessModel";
-import TwitterModel from "../model/TwitterModel";
-import TwitterController from "./TwitterController";
+import SocialMediaService from "../services/SocialMediaService";
 
 export default class AccessesController {
-
-  static createAccount: Map<number, Function> = new Map()
-      .set(TwitterModel.socialMediaId, TwitterController.generateLinkV1)
-
-  static removeAccount: Map<number, Function> = new Map()
-    .set(TwitterModel.socialMediaId, TwitterController.removeAccount)
 
   static async all(request: Request, response: Response) {
     try {
@@ -27,12 +20,12 @@ export default class AccessesController {
     try {
       const { socialMedia } = request.params
 
-      const callback = AccessesController.createAccount.get(Number(socialMedia))
+      const callback = SocialMediaService.createAccount.get(Number(socialMedia))
 
       if (callback) await callback(request, response)
-      else throw { message: "Não foi possível obter a rede social." }
-    } catch (e: any) {
-      response.status(400).json({ message: e.message ? e.message : "Não foi possível cadastrar seu acesso." })
+      else response.status(400).json({ message: "Não foi possível obter a rede social." })
+    } catch (_) {
+      response.status(400).json({ message: "Não foi possível cadastrar seu acesso." })
     }
   }
 
@@ -40,12 +33,12 @@ export default class AccessesController {
     try {
       const { socialMediaId } = request.body
 
-      const callback = AccessesController.removeAccount.get(Number(socialMediaId))
+      const callback = SocialMediaService.removeAccount.get(Number(socialMediaId))
 
       if (callback) await callback(request, response)
-      else throw { message: "Não foi possível remover a rede social." }
-    } catch (e: any) {
-      response.status(400).json({ message: e.message ? e.message : "Não foi possível remover seu acesso." })
+      else response.status(400).json({ message: "Não foi possível obter a rede social." })
+    } catch (_) {
+      response.status(400).json({ message: "Não foi possível remover seu acesso." })
     }
   }
 

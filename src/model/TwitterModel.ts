@@ -24,6 +24,15 @@ export default class TwitterModel {
     }
   }
 
+  static accessFromData(row: any) {
+    const data = row.data as TwitterModelAccessData
+    return {
+      id: row.id,
+      accessSecret: CryptoUtil.decrypt(data.accessSecret, CryptoUtil.createKey(row.salt)),
+      accessToken: CryptoUtil.decrypt(data.accessToken, CryptoUtil.createKey(row.salt))
+    }
+  }
+
   static hashAccess(data: string, key: Buffer) {
     return CryptoUtil.encrypt(data, key)
   }
@@ -64,5 +73,13 @@ export default class TwitterModel {
       .select("*")
       .where("user_id", "=", user)
       .andWhere("social_media_id", "=", this.socialMediaId)
+  }
+
+  static async getAccessById(accessId: number, userId: number) {
+    return this.accessFromData(await knex.table("accesses")
+      .select("*")
+      .where("id", accessId)
+      .andWhere("user_id", userId)
+      .first())
   }
 }
