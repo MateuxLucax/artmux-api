@@ -30,14 +30,11 @@ export class TagModel {
                 .where('tags.user_id', userId)
 
     return await Promise.all(tags.map(async row => {
-      console.log(row)
-
       row.tags = await knex("artworks")
         .select("artworks.*")
         .join("artwork_has_tags", "artwork_has_tags.artwork_id", "=", "artworks.id")
         .join("tags", "artwork_has_tags.tag_id", "=", "tags.id")
         .where("artwork_has_tags.tag_id", row.id)
-      console.log(row)
 
       return this.fromRow(row)
     }))
