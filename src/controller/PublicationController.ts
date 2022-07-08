@@ -154,12 +154,14 @@ export default class PublicationController {
         throw { statusCode: 400, errorMessage: msg }
       }
       const rows = await query
-      const publications = rows.map(row => {
+      const publications = await Promise.all(rows.map(async row => {
         const pub: any = PublicationModel.fromRow(row)
         pub.createdAt = pub.createdAt.toISOString()
         pub.updatedAt = pub.updatedAt.toISOString()
+
+        pub.socialMedias = await PublicationModel.publishedAtSocialMedia(pub.id)
         return pub
-      })
+      }))
       const total = rows.length > 0 ? rows[0].total : 0
       res.status(200).json({ publications, total })
     } catch(err) {

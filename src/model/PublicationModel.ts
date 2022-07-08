@@ -41,4 +41,11 @@ export class PublicationModel {
       .where("publication_id", publication_id)
   }
 
+  static async publishedAtSocialMedia(publication_id: number) {
+    return await knex.table({ps: "publication_in_social_media"})
+      .join({s: "social_medias"}, 's.id', 'ps.social_media_id')
+      .select("*")
+      .where("ps.publication_id", publication_id)
+  }
+
 }
