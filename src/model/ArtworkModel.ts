@@ -17,6 +17,7 @@ export type Artwork = {
   },
   createdAt: Date,
   updatedAt: Date,
+  deletable?: boolean,
   tags?: ITag[],
   publications?: Publication[]
 }
@@ -34,7 +35,7 @@ export class ArtworkModel {
         medium: artworkImgEndpoint(row.slug, row.slug_num, 'medium'),
         thumbnail: artworkImgEndpoint(row.slug, row.slug_num, 'thumbnail'),
       },
-      tags: row.tags ? row.tags.map((tag: any) => TagModel.fromRow(tag)) : [], 
+      tags: row.tags ? row.tags.map(TagModel.fromRow) : [], 
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
     }
@@ -56,10 +57,17 @@ export class ArtworkModel {
       .where('user_id', userid)
       .andWhere('slug', slug)
       .andWhere('slug_num', slugnum)
-      .select('*')
+      .select('*', knex.raw('EXISTS(SELECT 1 FROM publication_has_artworks WHERE artwork_id = artworks.id) AS in_publications'))
       .first()
     const row = await query
-    return row == undefined ? null : this.fromRow(row)
+
+    if (row == undefined) {
+      return null;
+    } else {
+      const artwork = this.fromRow(row);
+      artwork.deletable = !row.in_publications;
+      return artwork;
+    }
   }
 
   static async adjoinTags(knex: Knex, artwork: Artwork): Promise<void> {
