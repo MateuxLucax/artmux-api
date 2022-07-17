@@ -11,12 +11,11 @@
     "node": ">=17.0.0"
   },
   "scripts": {
-    "dev": "nodemon -L --watch 'src/' --exec 'ts-node src/server.ts' -e ts",
     "build": "tsc",
     "start": "node ./dist/server.js",
-    "migrate": "knex --knexfile ./dist/database/knexfile.js migrate:latest",
-    "knex:migrate:make": "knex --knexfile src/database/knexfile.ts migrate:make",
-    "knex:migrate:latest": "knex --knexfile src/database/knexfile.ts migrate:latest",
+    "dev": "nodemon -L --watch 'src/' --exec 'ts-node src/server.ts' -e ts",
+    "knex:migrate:make": "knex --knexfile ./src/database/knexfile.ts migrate:make",
+    "knex:migrate:latest": "knex --knexfile ./src/database/knexfile.ts migrate:latest",
     "knex:migrate:rollback": "knex --knexfile src/database/knexfile.ts migrate:rollback",
     "knex:seed:make": "knex --knexfile src/database/knexfile.ts seed:make",
     "knex:seed:run": "knex --knexfile src/database/knexfile.ts seed:run"

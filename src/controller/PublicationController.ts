@@ -225,8 +225,6 @@ export default class PublicationController {
     try {
       const publicationId = Number(request.params.id)
 
-      console.log('publication', publicationId)
-
       const publishedAt = await PublicationModel.publishedAt(publicationId)
 
       response.json({ publishedAt })
