@@ -13,7 +13,12 @@ import TwitterState from "../utils/TwitterState"
 export const CALLBACK_URL_V1 = "https://api.artmux.gargantua.one/twitter/link/v1/callback"
 export const ARTMUX_URL = "https://artmux.gargantua.one/perfil/#accounts"
 
-export default class TwitterController implements CreateAccountFromSocialMedia, RemoveAccountFromSocialMedia, PublishInSocialMedia {
+export default class TwitterController
+implements
+CreateAccountFromSocialMedia,
+RemoveAccountFromSocialMedia,
+PublishInSocialMedia
+{
 
   async createAccount(request: Request, response: Response): Promise<void> {
     try {

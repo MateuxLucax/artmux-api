@@ -24,3 +24,6 @@ export const TWITTER_API_KEY_SECRET = process.env.TWITTER_API_KEY_SECRET || "non
 export const TWITTER_BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN || "none"
 export const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID || "none"
 export const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET || "none"
+
+export const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID || "none"
+export const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET || "none"

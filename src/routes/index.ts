@@ -6,6 +6,7 @@ import artworks from "./artworks"
 import publications from "./publications"
 import tags from "./tags"
 import twitter from "./twitter"
+import reddit from "./reddit"
 import accesses from "./accesses"
 import { errorMiddleware } from "../middleware/errorMiddleware"
 
@@ -17,6 +18,7 @@ router.use("/artworks", artworks)
 router.use("/publications", publications)
 router.use("/tags", tags)
 router.use("/twitter", twitter)
+router.use("/reddit", reddit)
 router.use("/accesses", accesses)
 
 router.get("/", (_req, res) => {

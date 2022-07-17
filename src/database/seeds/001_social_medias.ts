@@ -16,6 +16,16 @@ export async function seed(knex: Knex): Promise<void> {
                     "media": 4
                 }
             }),
+        },
+        { 
+            id: 2,
+            name: "Reddit",
+            config: JSON.stringify({
+                "btnBgColor": "#FF4500",
+                "btnTextColor": "#FFFFFF",
+                "btnIcon": `<i class="bi bi-reddit"></i>`,
+                "constraints": {} // TODO
+            }),
         }
     ])
 }
