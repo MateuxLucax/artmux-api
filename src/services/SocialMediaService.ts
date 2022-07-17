@@ -7,7 +7,7 @@ import RedditModel from "../model/RedditModel"
 export default class SocialMediaService {
 
   static twitterController = new TwitterController()
-  static redditController = new RedditController
+  static redditController = new RedditController()
 
   static createAccount: Map<number, SocialMediaFnType> = new Map()
     .set(TwitterModel.socialMediaId, this.twitterController.createAccount)
@@ -15,6 +15,7 @@ export default class SocialMediaService {
 
   static removeAccount: Map<number, SocialMediaFnType> = new Map()
     .set(TwitterModel.socialMediaId, this.twitterController.removeAccount)
+    .set(RedditModel.socialMediaId, this.redditController.removeAccount)
 
   static publish: Map<number, SocialMediaFnType> = new Map()
     .set(TwitterModel.socialMediaId, this.twitterController.publish)

@@ -1,10 +1,12 @@
 import TwitterModel from "./TwitterModel"
+import RedditModel from './RedditModel'
 import knex from "../database"
 
 export default class AccessModel {
 
   static parseData: Map<number, Function> = new Map()
     .set(TwitterModel.socialMediaId, TwitterModel.userFromData)
+    .set(RedditModel.socialMediaId, RedditModel.userFromData)
 
   static async all(user: number) {
     const socialMedias = await knex.table("social_medias").select("id", "name", "config")
@@ -16,7 +18,6 @@ export default class AccessModel {
         .select("*")
 
       const parser = this.parseData.get(Number(socialMedia.id))
-
 
       return {
         ...socialMedia,
