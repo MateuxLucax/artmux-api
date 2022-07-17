@@ -6,35 +6,15 @@ services:
     restart: unless-stopped
     image: artmux-api-prod:latest
     hostname: artmux-api-prod
-    command: sh -c "npm run migrate && npm run start"
+    command: sh -c "npm run start"
     build:
       context: .
       dockerfile: ./docker/prod/Dockerfile
     ports:
       - ${PORT}:${PORT}
-    depends_on:
-      - database
-    networks:
-      - artmux-network
-
-  database:
-    container_name: artmux-database
-    image: postgres:14-alpine
-    restart: unless-stopped
-    tty: true
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-      TZ: 'GMT-3'
-      PGTZ: 'GMT-3'
-    volumes:
-      - ./database/prod:/var/lib/postgresql/data
-    ports:
-      - "${DB_PORT}:5432"
     networks:
       - artmux-network
 
 networks:
   artmux-network:
-    driver: bridge
+    external: true

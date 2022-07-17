@@ -63,7 +63,7 @@ PublishInSocialMedia
       const userId = request.user.id
 
       const artworks = await Promise.all(media.map(async (slug: string) => {
-        return (await getArtworkImgPaths(userId, slug)).original
+        return (await getArtworkImgPaths(userId, slug)).medium
       }))
 
       const { accessToken, accessSecret } = await TwitterModel.getAccessById(accessId, userId)
@@ -75,13 +75,23 @@ PublishInSocialMedia
         accessSecret: accessSecret as string,
       })
 
-      const tweet = await client.v2.tweet(description as string)
-      if (tweet.data.text == description && await PublicationModel.insertPublicationInSocialMedia(Number(publicationId), accessId, TwitterModel.socialMediaId))
+      console.log(artworks)
+
+      const media_ids = await Promise.all(artworks.map(async artwork => await client.v1.uploadMedia(artwork)))
+      console.log(media_ids)
+
+      const tweet = await client.v2.tweet(description as string, {
+        media: {
+          media_ids
+        }
+      })
+
+      if (!tweet.errors && await PublicationModel.insertPublicationInSocialMedia(Number(publicationId), accessId, TwitterModel.socialMediaId))
         response.json({ message: "Publicação feita com sucesso!" })
       else
         response.status(400).json({ message: "Não foi possível fazer a publicação." })
-    } catch (e) {
-      console.log(e)
+    } catch (_) {
+      console.log(_)
       response.status(500).json({ message: "Algo deu errado ao fazer a publicação." })
     }  
   }
