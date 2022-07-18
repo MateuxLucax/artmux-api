@@ -9,7 +9,7 @@ export async function seed(knex: Knex): Promise<void> {
             name: "Twitter",
             config: JSON.stringify({
                 "btnBgColor": "#1DA1F2",
-                "btnTextColor": "#F5F8FA",
+                "btnTextColor": "#FFFFFF",
                 "btnIcon": `<i class="bi bi-twitter"></i>`,
                 "constraints": {
                     "text": 240,

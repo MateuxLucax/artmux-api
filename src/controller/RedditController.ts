@@ -1,15 +1,15 @@
-import { Request, Response, NextFunction } from 'express';
-import { CreateAccountFromSocialMedia } from "../services/SocialMediaService";
-import { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } from '../utils/environmentUtil';
-import { RedditAccess } from '../model/RedditModel';
-import Snoowrap, { RedditUser } from 'snoowrap';
+import { Request, Response, NextFunction } from 'express'
+import { CreateAccountFromSocialMedia } from "../services/SocialMediaService"
+import { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } from '../utils/environmentUtil'
+import { RedditAccess } from '../model/RedditModel'
+import Snoowrap, { RedditUser } from 'snoowrap'
 import CryptoUtil from '../utils/CryptoUtil'
-import { randomBytes } from 'crypto';
-import RedditModel from '../model/RedditModel';
-import AccessModel from '../model/AccessModel';
+import { randomBytes } from 'crypto'
+import RedditModel from '../model/RedditModel'
+import AccessModel from '../model/AccessModel'
 
 // Configurada no reddit.com/prefs/apps
-const redirectUri = 'http://localhost/perfil/reddit_redirect_uri.php'
+const redirectUri = 'https://artmux.gargantua.one/perfil/reddit_redirect_uri.php'
 
 function makeSnoowrap(accessToken: string) {
   return new Snoowrap({
@@ -17,9 +17,8 @@ function makeSnoowrap(accessToken: string) {
     accessToken,
     clientId: REDDIT_CLIENT_ID,
     clientSecret: REDDIT_CLIENT_SECRET
-  });
+  })
 }
-
 
 export default class RedditController
 implements
@@ -35,8 +34,8 @@ CreateAccountFromSocialMedia
   }
 
   static async callback(request: Request, response: Response, next: NextFunction): Promise<void> {
-    const { code } = request.body;
-    const url = 'https://www.reddit.com/api/v1/access_token';
+    const { code } = request.body
+    const url = 'https://www.reddit.com/api/v1/access_token'
     const postParams = new URLSearchParams()
     postParams.set('grant_type', 'authorization_code')
     postParams.set('code', code)
@@ -69,7 +68,6 @@ CreateAccountFromSocialMedia
           throw { statusCode: 500, errorMessage: 'Could not insert Reddit access into database' }
         }
       })
-
     } catch (err) {
       next(err)
     }

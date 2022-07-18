@@ -75,10 +75,7 @@ PublishInSocialMedia
         accessSecret: accessSecret as string,
       })
 
-      console.log(artworks)
-
       const media_ids = await Promise.all(artworks.map(async artwork => await client.v1.uploadMedia(artwork)))
-      console.log(media_ids)
 
       const tweet = await client.v2.tweet(description as string, {
         media: {
@@ -91,7 +88,6 @@ PublishInSocialMedia
       else
         response.status(400).json({ message: "Não foi possível fazer a publicação." })
     } catch (_) {
-      console.log(_)
       response.status(500).json({ message: "Algo deu errado ao fazer a publicação." })
     }  
   }
