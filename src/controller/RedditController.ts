@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { CreateAccountFromSocialMedia } from "../services/SocialMediaService"
 import { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } from '../utils/environmentUtil'
 import { RedditAccess } from '../model/RedditModel'
-import Snoowrap, { RedditUser } from 'snoowrap'
+import Snoowrap from 'snoowrap'
 import CryptoUtil from '../utils/CryptoUtil'
 import { randomBytes } from 'crypto'
 import RedditModel from '../model/RedditModel'
